@@ -5,12 +5,12 @@
 // live sessions, since they are about how sessions run now, but tracking the
 // impact of a tip compares against sessions Claude Code has since deleted.
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 import { readOptional, writeFileAtomic } from '../knobs/atomic-file.js';
 
 import type { SessionMeasure } from './measure.js';
-import { SPEND_SOURCES, zeroSpend } from './spend.js';
+import { SPEND_SOURCES } from './spend.js';
 
 export interface FileStamp {
   readonly mtimeMs: number;
@@ -30,7 +30,8 @@ export interface TuningIndex {
   scannedAt: number | null;
 }
 
-const count = z.number().nonnegative();
+const count = z.number().check(z.nonnegative());
+const counts = z.record(z.string(), count);
 
 const costSchema = z.object({
   input: count,
@@ -50,28 +51,24 @@ const hourSchema = z.object({
   idleRewriteUsd: count,
 });
 
-const spendSchema = z
-  .object({
-    setup: count,
-    instructions: count,
-    skills: count,
-    reminders: count,
-    fileReads: count,
-    toolOutput: count,
-    web: count,
-    toolInputs: count,
-    subagentReports: count,
-    conversation: count,
-    output: count,
-  })
-  .default(zeroSpend);
-
-const spendSourceSchema = z.enum(SPEND_SOURCES);
+const spendSchema = z.object({
+  setup: count,
+  instructions: count,
+  skills: count,
+  reminders: count,
+  fileReads: count,
+  toolOutput: count,
+  web: count,
+  toolInputs: count,
+  subagentReports: count,
+  conversation: count,
+  output: count,
+});
 
 const measureSchema = z.object({
   sessionId: z.string(),
   title: z.string(),
-  cwd: z.string().nullable(),
+  cwd: z.nullable(z.string()),
   startedAt: z.number(),
   updatedAt: z.number(),
   prompts: count,
@@ -82,18 +79,18 @@ const measureSchema = z.object({
   cost: costSchema,
   idleRewrites: count,
   idleRewriteUsd: count,
-  compactSavingUsd: count.default(0),
+  compactSavingUsd: count,
   bigResults: count,
   extraReads: count,
   repeatedRuns: count,
-  topRepeat: z.object({ command: z.string(), runs: count }).nullable(),
+  topRepeat: z.nullable(z.object({ command: z.string(), runs: count })),
   toolCalls: count,
   toolErrors: count,
   denials: count,
   bashCommands: count,
   cdCommands: count,
-  cdTargets: z.record(z.string(), count).default({}),
-  spawns: z.record(z.string(), count),
+  cdTargets: counts,
+  spawns: counts,
   subagentRequests: count,
   premiumSubagentRequests: count,
   subagentUsd: count,
@@ -104,24 +101,19 @@ const measureSchema = z.object({
     buildTest: count,
     search: count,
   }),
-  // Version 2 files have no hours. They read as none, and the scan measures
-  // live transcripts again to fill them in.
-  hours: z.array(hourSchema).readonly().default([]),
-  // Version 3 files have no stack, so it reads as empty until the next measure.
-  stack: z.record(z.string(), count).default({}),
-  // Version 4 files have none of the spend split, so it reads as empty until the next measure.
+  hours: z.readonly(z.array(hourSchema)),
+  stack: counts,
   spend: spendSchema,
   subagentSpend: spendSchema,
-  heavy: z
-    .array(z.object({ source: spendSourceSchema, label: z.string(), tokens: count, usd: count }))
-    .readonly()
-    .default([]),
-  files: z.record(z.string(), count).default({}),
-  skills: z.record(z.string(), count).default({}),
-  toolSchemas: z.record(z.string(), count).default({}),
-  toolUses: z.record(z.string(), count).default({}),
-  subagents: z
-    .array(
+  heavy: z.readonly(
+    z.array(z.object({ source: z.enum(SPEND_SOURCES), label: z.string(), tokens: count, usd: count })),
+  ),
+  files: counts,
+  skills: counts,
+  toolSchemas: counts,
+  toolUses: counts,
+  subagents: z.readonly(
+    z.array(
       z.object({
         type: z.string(),
         description: z.string(),
@@ -129,16 +121,19 @@ const measureSchema = z.object({
         requests: count,
         peakContext: count,
       }),
-    )
-    .readonly()
-    .default([]),
-}) satisfies z.ZodType<SessionMeasure>;
+    ),
+  ),
+}) satisfies z.ZodMiniType<SessionMeasure>;
+
+/**
+ * Bump when the measure changes meaning. A file of another version starts
+ * over, since the scan can rebuild it from the transcripts.
+ */
+const VERSION = 1;
 
 const fileSchema = z.object({
-  // Bump when the measure changes meaning, so old entries are measured again.
-  // Versions 2 to 5 lack the hours, the stack, the spend split or the cd targets, so their live entries are measured again.
-  version: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
-  scannedAt: z.number().nullable(),
+  version: z.literal(VERSION),
+  scannedAt: z.nullable(z.number()),
   entries: z.record(
     z.string(),
     z.object({
@@ -148,9 +143,6 @@ const fileSchema = z.object({
     }),
   ),
 });
-
-/** Matches no file, so the next scan measures the transcript again. */
-const STALE_STAMP: FileStamp = { mtimeMs: -1, size: -1 };
 
 export function emptyIndex(): TuningIndex {
   return { entries: new Map(), scannedAt: null };
@@ -167,13 +159,7 @@ function parseIndex(text: string): TuningIndex | null {
   if (!parsed.success) {
     return null;
   }
-  const { version, entries, scannedAt } = parsed.data;
-  const stale = (entry: IndexEntry): IndexEntry =>
-    version < 6 && entry.live ? { ...entry, stamp: STALE_STAMP } : entry;
-  return {
-    entries: new Map(Object.entries(entries).map(([file, entry]) => [file, stale(entry)])),
-    scannedAt,
-  };
+  return { entries: new Map(Object.entries(parsed.data.entries)), scannedAt: parsed.data.scannedAt };
 }
 
 /** The saved index. A missing, corrupt or older file starts empty, since it can be rebuilt. */
@@ -184,7 +170,7 @@ export async function loadIndex(file: string): Promise<TuningIndex> {
 
 export async function saveIndex(file: string, index: TuningIndex): Promise<void> {
   const data: z.input<typeof fileSchema> = {
-    version: 6,
+    version: VERSION,
     scannedAt: index.scannedAt,
     entries: Object.fromEntries(index.entries),
   };

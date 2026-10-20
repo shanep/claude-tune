@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-
 import { zeroSpend } from './spend.js';
 import { summarize } from './summarize.js';
 import { HOME, measureOf } from './test-helpers/fixtures.js';

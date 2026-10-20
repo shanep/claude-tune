@@ -2,7 +2,7 @@
 // measures, this cannot be rebuilt from the transcripts, so it has a file of
 // its own that a change to the measure never wipes.
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 import { readOptional, writeFileAtomic } from '../knobs/atomic-file.js';
 

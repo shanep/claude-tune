@@ -5,7 +5,7 @@
 // cspell:words oneline fuser
 
 import type { Suggestion } from '../../shared/tuning.js';
-import type { AgentSpec, SkillSpec } from '../authoring/schema.js';
+import type { AgentSpec, SkillSpec } from '../authoring/render.js';
 
 import type { Totals } from './totals.js';
 import { LARGE_CONTEXT, LONG_SESSION_PROMPTS } from './totals.js';

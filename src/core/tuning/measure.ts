@@ -6,7 +6,7 @@
 
 import type { CostlySubagent, HeavyItem } from '../../shared/tuning.js';
 import { isPlainObject } from '../knobs/json.js';
-import { transcriptPrompts } from '../reputation/prompts.js';
+import { transcriptPrompts } from '../transcripts/prompts.js';
 import type { PriceTable } from '../transcripts/pricing.js';
 import { DEFAULT_PRICES } from '../transcripts/pricing.js';
 import type { ContentBlock, TranscriptRecord } from '../transcripts/schemas.js';

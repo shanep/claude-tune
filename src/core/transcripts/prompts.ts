@@ -1,4 +1,4 @@
-// Pulls the prompts a person typed out of transcript lines and history lines.
+// Pulls the prompts a person typed out of transcript lines.
 // Transcripts also hold tool results, command output, notices from background
 // tasks, messages from other agents and summaries Claude Code writes itself,
 // all as "user" records, so most of the work here is leaving those out.
@@ -6,7 +6,7 @@
 
 import { createHash } from 'node:crypto';
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
 export interface Prompt {
   /** Stable across rescans, so a prompt is counted once. */
@@ -17,13 +17,12 @@ export interface Prompt {
 }
 
 const TRANSCRIPT_PREFIX = 't:';
-export const HISTORY_PREFIX = 'h:';
 
-const looseString = z.string().nullish().catch(null);
-const looseBoolean = z.boolean().nullish().catch(null);
-const origin = z.object({ kind: z.string() }).nullish().catch(null);
+const looseString = z.catch(z.nullish(z.string()), null);
+const looseBoolean = z.catch(z.nullish(z.boolean()), null);
+const origin = z.catch(z.nullish(z.object({ kind: z.string() })), null);
 
-const block = z.object({ type: z.string(), text: z.string().nullish().catch(null) });
+const block = z.object({ type: z.string(), text: z.catch(z.nullish(z.string()), null) });
 
 const userSchema = z.object({
   type: z.literal('user'),
@@ -54,12 +53,6 @@ const recordSchema = z.discriminatedUnion('type', [userSchema, queuedSchema]);
 
 type UserLine = z.infer<typeof userSchema>;
 type QueuedLine = z.infer<typeof queuedSchema>;
-
-const historySchema = z.object({
-  display: z.string(),
-  timestamp: z.number(),
-  sessionId: z.string().min(1),
-});
 
 /** Text Claude Code writes into user records itself. */
 const MACHINE_PREFIXES: readonly string[] = [
@@ -184,31 +177,6 @@ export function transcriptPrompts(lines: readonly string[], source: TranscriptSo
     const prompt = worthParsing(line) ? promptFrom(line, source) : null;
     if (prompt !== null) {
       prompts.push(prompt);
-    }
-  }
-  return prompts;
-}
-
-const PASTED = /\[Pasted text #[^\]]*\]/gu;
-
-/**
- * Typed prompts in ~/.claude/history.jsonl, which keeps what was typed after
- * the transcripts are cleaned up. Slash commands and shell lines are left out,
- * as they are in transcripts, and so are lines with no session id.
- */
-export function historyPrompts(lines: readonly string[]): Prompt[] {
-  const prompts: Prompt[] = [];
-  for (const line of lines) {
-    const parsed = historySchema.safeParse(parseJson(line));
-    const entry = parsed.success ? parsed.data : null;
-    const text = entry?.display.replaceAll(PASTED, ' ').trim() ?? '';
-    if (entry !== null && text !== '' && !text.startsWith('/') && !text.startsWith('!')) {
-      prompts.push({
-        id: `${HISTORY_PREFIX}${shortHash(entry.sessionId, String(entry.timestamp), entry.display)}`,
-        sessionId: entry.sessionId,
-        at: entry.timestamp,
-        text,
-      });
     }
   }
   return prompts;

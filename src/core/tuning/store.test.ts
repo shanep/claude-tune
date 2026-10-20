@@ -42,7 +42,7 @@ describe('tips index', () => {
     index.entries.set('/p/s.jsonl', { stamp: { mtimeMs: 5, size: 9 }, measure, live: false });
     index.scannedAt = 77;
     await saveIndex(file, index);
-    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ version: 6, scannedAt: 77 });
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ version: 1, scannedAt: 77 });
     const loaded = await loadIndex(file);
     expect(loaded.scannedAt).toBe(77);
     expect(loaded.entries.get('/p/s.jsonl')).toStrictEqual({
@@ -52,44 +52,9 @@ describe('tips index', () => {
     });
   });
 
-  it.each([2, 5])(
-    'keeps a version %i file but measures its live transcripts again',
-    async (version) => {
-      const file = await temporaryFile();
-      const old = Object.fromEntries(
-        Object.entries(measureOf()).filter(([key]) => key !== 'hours' && key !== 'cdTargets'),
-      );
-      const entries = {
-        '/p/live.jsonl': { stamp: { mtimeMs: 5, size: 9 }, measure: old, live: true },
-        '/p/gone.jsonl': { stamp: { mtimeMs: 6, size: 9 }, measure: old, live: false },
-      };
-      await writeFile(file, JSON.stringify({ version, scannedAt: 1, entries }));
-      const loaded = await loadIndex(file);
-      expect(loaded.entries.get('/p/live.jsonl')).toStrictEqual({
-        stamp: { mtimeMs: -1, size: -1 },
-        measure: measureOf(),
-        live: true,
-      });
-      expect(loaded.entries.get('/p/gone.jsonl')?.stamp).toStrictEqual({ mtimeMs: 6, size: 9 });
-    },
-  );
-
-  it('keeps the live transcripts of a version 6 file as they were', async () => {
-    const file = await temporaryFile();
-    const entries = {
-      '/p/live.jsonl': { stamp: { mtimeMs: 5, size: 9 }, measure: measureOf(), live: true },
-    };
-    await writeFile(file, JSON.stringify({ version: 6, scannedAt: 1, entries }));
-    const loaded = await loadIndex(file);
-    expect(loaded.entries.get('/p/live.jsonl')?.stamp).toStrictEqual({
-      mtimeMs: 5,
-      size: 9,
-    });
-  });
-
   it('starts over from bad JSON, a wrong shape or an older version', async () => {
     const file = await temporaryFile();
-    for (const text of ['{oops', '{"version":2}', '{"version":1,"scannedAt":null,"entries":{}}']) {
+    for (const text of ['{oops', '{"version":1}', '{"version":6,"scannedAt":null,"entries":{}}']) {
       await writeFile(file, text);
       expect(await loadIndex(file)).toStrictEqual(emptyIndex());
     }

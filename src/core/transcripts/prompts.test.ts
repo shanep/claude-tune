@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { TranscriptSource } from './prompts.js';
-import { historyPrompts, transcriptPrompts, typedText } from './prompts.js';
+import { transcriptPrompts, typedText } from './prompts.js';
 
 const SOURCE: TranscriptSource = { sessionId: 's1', fallbackAt: 42 };
 const AT = '2026-10-01T12:00:00.000Z';
@@ -178,52 +178,5 @@ describe('typedText', () => {
     }
     expect(typedText('why <command- here')).toBe('why <command- here');
     expect(typedText('I see [Request interrupted')).toBe('I see [Request interrupted');
-  });
-});
-
-function line(display: string, extra: Record<string, unknown> = {}): string {
-  return JSON.stringify({
-    display,
-    pastedContents: {},
-    timestamp: 1000,
-    project: '/work',
-    sessionId: 's9',
-    ...extra,
-  });
-}
-
-describe('historyPrompts', () => {
-  it('reads typed lines with a stable hash id', () => {
-    const [first] = historyPrompts([line('fix it')]);
-    expect(first?.id).toMatch(/^h:[0-9a-f]{24}$/u);
-    expect(first).toStrictEqual({ id: first?.id, sessionId: 's9', at: 1000, text: 'fix it' });
-    expect(historyPrompts([line('fix it')])[0]?.id).toBe(first?.id);
-    expect(historyPrompts([line('fix it', { timestamp: 1001 })])[0]?.id).not.toBe(first?.id);
-    expect(historyPrompts([line('fix it', { sessionId: 's8' })])[0]?.id).not.toBe(first?.id);
-    expect(historyPrompts([line('fix it!')])[0]?.id).not.toBe(first?.id);
-  });
-
-  it('keeps the id parts apart, so moving characters between them changes the id', () => {
-    const joined = historyPrompts([line('x', { sessionId: 's9', timestamp: 1000 })])[0]?.id;
-    const moved = historyPrompts([line('x', { sessionId: 's9100', timestamp: 0 })])[0]?.id;
-    expect(joined).not.toBe(moved);
-  });
-
-  it('drops pasted text markers and skips commands, shell lines and empty lines', () => {
-    expect(historyPrompts([line('look [Pasted text #1 +20 lines] here')])[0]?.text).toBe(
-      'look   here',
-    );
-    expect(
-      historyPrompts([
-        line('/agents '),
-        line('!ls'),
-        line('  '),
-        line('[Pasted text #2]'),
-        line('x', { sessionId: '' }),
-        line('x', { sessionId: null }),
-        line('x', { timestamp: 'soon' }),
-        'not json',
-      ]),
-    ).toStrictEqual([]);
   });
 });

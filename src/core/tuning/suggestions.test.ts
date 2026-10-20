@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { renderAgent, renderSkill } from '../authoring/render.js';
-import { validateAgentFile, validateSkillFile } from '../authoring/validate.js';
-
 import { buildSuggestions, findSuggestion, nameOf, SUGGESTIONS } from './suggestions.js';
 import { HOME, measureOf } from './test-helpers/fixtures.js';
 import { totalsOf } from './totals.js';
@@ -15,13 +12,8 @@ const BUSY = measureOf({
 });
 
 describe('suggestions', () => {
-  it('render to valid skill and agent files named after their ids', () => {
+  it('are named after their ids and list pros and cons', () => {
     for (const definition of SUGGESTIONS) {
-      const text =
-        definition.kind === 'agent' ? renderAgent(definition.spec) : renderSkill(definition.spec);
-      const issues =
-        definition.kind === 'agent' ? validateAgentFile(text) : validateSkillFile(text);
-      expect({ id: definition.id, issues }).toStrictEqual({ id: definition.id, issues: [] });
       expect(nameOf(definition)).toBe(definition.id);
       const both = definition.pros.length > 0 && definition.cons.length > 0;
       expect({ id: definition.id, both }).toStrictEqual({ id: definition.id, both: true });

@@ -3,12 +3,12 @@
 // not strictly need falls back to a neutral value instead of failing the line.
 // Checked against Claude Code 2.1.260 through 2.1.301.
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
-const looseString = z.string().nullish().catch(null);
-const looseBoolean = z.boolean().nullish().catch(null);
-const count = z.number().nonnegative().catch(0);
-const stringList = z.array(z.string()).catch([]);
+const looseString = z.catch(z.nullish(z.string()), null);
+const looseBoolean = z.catch(z.nullish(z.boolean()), null);
+const count = z.catch(z.number().check(z.nonnegative()), 0);
+const stringList = z.catch(z.array(z.string()), []);
 
 const baseFields = {
   uuid: looseString,
@@ -23,7 +23,7 @@ const baseFields = {
 };
 
 const resultPart = z.object({
-  type: z.string().catch('other'),
+  type: z.catch(z.string(), 'other'),
   text: looseString,
 });
 
@@ -31,17 +31,17 @@ const resultPart = z.object({
 const OTHER_PART: { type: string; text: null } = { type: 'other', text: null };
 const OTHER_BLOCK: { type: 'other' } = { type: 'other' };
 
-const lenientPart = resultPart.catch(OTHER_PART);
+const lenientPart = z.catch(resultPart, OTHER_PART);
 
 /** Tool result content is a string or a list of parts (text, image, document and so on). */
-const toolResultContentSchema = z.union([z.string(), z.array(lenientPart)]).catch('');
+const toolResultContentSchema = z.catch(z.union([z.string(), z.array(lenientPart)]), '');
 
 export type ToolResultContent = z.infer<typeof toolResultContentSchema>;
 
-const contentBlockSchema = z
-  .discriminatedUnion('type', [
+const contentBlockSchema = z.catch(
+  z.discriminatedUnion('type', [
     z.object({ type: z.literal('text'), text: z.string() }),
-    z.object({ type: z.literal('thinking'), thinking: z.string().catch('') }),
+    z.object({ type: z.literal('thinking'), thinking: z.catch(z.string(), '') }),
     z.object({
       type: z.literal('tool_use'),
       id: z.string(),
@@ -55,8 +55,9 @@ const contentBlockSchema = z
       content: toolResultContentSchema,
     }),
     z.object({ type: z.literal('other') }),
-  ])
-  .catch(OTHER_BLOCK);
+  ]),
+  OTHER_BLOCK,
+);
 
 export type ContentBlock = z.infer<typeof contentBlockSchema>;
 
@@ -65,7 +66,7 @@ const usageSchema = z.object({
   output_tokens: count,
   cache_read_input_tokens: count,
   cache_creation_input_tokens: count,
-  output_tokens_details: z.object({ thinking_tokens: count }).nullish().catch(null),
+  output_tokens_details: z.catch(z.nullish(z.object({ thinking_tokens: count })), null),
 });
 
 export type RawUsage = z.infer<typeof usageSchema>;
@@ -77,9 +78,9 @@ const userRecordSchema = z.object({
   isCompactSummary: looseBoolean,
   permissionMode: looseString,
   message: z.object({
-    content: z.union([z.string(), z.array(contentBlockSchema)]).catch(''),
+    content: z.catch(z.union([z.string(), z.array(contentBlockSchema)]), ''),
   }),
-  toolUseResult: z.object({ status: looseString }).nullish().catch(null),
+  toolUseResult: z.catch(z.nullish(z.object({ status: looseString })), null),
 });
 
 const assistantRecordSchema = z.object({
@@ -89,10 +90,10 @@ const assistantRecordSchema = z.object({
   effort: looseString,
   message: z.object({
     id: z.string(),
-    model: z.string().catch('unknown'),
+    model: z.catch(z.string(), 'unknown'),
     stop_reason: looseString,
-    usage: usageSchema.nullish().catch(null),
-    content: z.array(contentBlockSchema).catch([]),
+    usage: z.catch(z.nullish(usageSchema), null),
+    content: z.catch(z.array(contentBlockSchema), []),
   }),
 });
 
@@ -106,7 +107,7 @@ const systemRecordSchema = z.object({
 const memoryFileSchema = z.object({
   path: z.string(),
   type: z.string(),
-  content: z.string().catch(''),
+  content: z.catch(z.string(), ''),
 });
 
 const attachmentSchema = z.discriminatedUnion('type', [
@@ -122,7 +123,7 @@ const attachmentSchema = z.discriminatedUnion('type', [
     content: z.object({
       path: looseString,
       type: z.string(),
-      content: z.string().catch(''),
+      content: z.catch(z.string(), ''),
       contentDiffersFromDisk: looseBoolean,
     }),
   }),
@@ -130,7 +131,7 @@ const attachmentSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('skill_listing'),
     names: stringList,
-    content: z.string().catch(''),
+    content: z.catch(z.string(), ''),
   }),
   z.object({
     type: z.literal('invoked_skills'),
@@ -154,7 +155,7 @@ const attachmentSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('environment'), snapshot: z.record(z.string(), z.unknown()) }),
   z.object({ type: z.literal('model'), identity: z.object({ modelId: z.string() }) }),
-  z.object({ type: z.literal('queued_command'), prompt: z.string().catch('') }),
+  z.object({ type: z.literal('queued_command'), prompt: z.catch(z.string(), '') }),
 ]);
 
 export type Attachment = z.infer<typeof attachmentSchema>;
@@ -173,7 +174,7 @@ const transcriptRecordSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('permission-mode'), permissionMode: z.string() }),
   z.object({ type: z.literal('ai-title'), aiTitle: z.string() }),
   z.object({ type: z.literal('custom-title'), customTitle: z.string() }),
-  z.object({ type: z.literal('last-prompt'), lastPrompt: z.string().catch('') }),
+  z.object({ type: z.literal('last-prompt'), lastPrompt: z.catch(z.string(), '') }),
 ]);
 
 export type TranscriptRecord = z.infer<typeof transcriptRecordSchema>;

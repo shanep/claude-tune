@@ -6,16 +6,16 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { z } from 'zod';
+import * as z from 'zod/mini';
 
-const looseString = z.string().nullish().catch(null);
+const looseString = z.catch(z.nullish(z.string()), null);
 
 const subagentMetaSchema = z.object({
-  agentType: z.string().catch('unknown'),
-  description: z.string().catch(''),
+  agentType: z.catch(z.string(), 'unknown'),
+  description: z.catch(z.string(), ''),
   toolUseId: looseString,
   parentAgentId: looseString,
-  spawnDepth: z.number().int().nonnegative().catch(1),
+  spawnDepth: z.catch(z.int().check(z.nonnegative()), 1),
   requestShape: looseString,
   model: looseString,
 });
