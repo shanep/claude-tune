@@ -1,6 +1,6 @@
 // The commands by name, as the /tune skill and the tests call them.
 
-import { fix, report, track } from './app.js';
+import { fix, help, report, track } from './app.js';
 import type { Env } from './app.js';
 
 export const USAGE = `Usage: tune <command>
@@ -10,6 +10,7 @@ export const USAGE = `Usage: tune <command>
   fix <fix-id> [--dry-run] Apply a setting or create fix, or print the task
                            for a launch fix. Tracks the tips it follows.
   track <tip-id> [--off]   Start or stop tracking a tip by hand.
+  help [--open]            Show this, or open the full guide in your browser.
 `;
 
 export async function run(argv: readonly string[], env: Env): Promise<string> {
@@ -32,7 +33,7 @@ export async function run(argv: readonly string[], env: Env): Promise<string> {
       return track(env, target, !flags.has('--off'));
     }
     case 'help': {
-      return USAGE;
+      return flags.has('--open') ? help(env) : `${USAGE}\nRun tune help --open for the full guide.\n`;
     }
     default: {
       throw new Error(`Unknown command ${command}.\n\n${USAGE}`);

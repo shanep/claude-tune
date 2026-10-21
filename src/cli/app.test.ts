@@ -67,6 +67,8 @@ async function makeHome(settings: unknown = {}): Promise<Home> {
     platform: 'linux',
     now: () => NOW,
     git: () => null,
+    helpFile: path.join(root, 'help.html'),
+    open: () => Promise.resolve(),
   };
   return { root, env };
 }
@@ -186,5 +188,38 @@ describe('tune track', () => {
     expect(await run(['track', 'huge-context', '--off'], env)).toContain('Stopped');
     expect(await run(['track', 'huge-context', '--off'], env)).toContain('was not tracked');
     await expect(run(['track', 'nope'], env)).rejects.toThrow('no tip called nope');
+  });
+});
+
+describe('tune help', () => {
+  it('lists the commands and points at the full guide', async () => {
+    const { env } = await makeHome();
+    const out = await run(['help'], env);
+    expect(out).toContain('help [--open]');
+    expect(out).toContain('Run tune help --open for the full guide.');
+  });
+
+  it('opens the help page, or says where it is when nothing can open it', async () => {
+    const { env } = await makeHome();
+    await writeFile(env.helpFile, '<html></html>');
+    const opened: string[] = [];
+    const opener: Env = {
+      ...env,
+      open: (file) => {
+        opened.push(file);
+        return Promise.resolve();
+      },
+    };
+    expect(await run(['help', '--open'], opener)).toBe(`Opened ${env.helpFile}.\n`);
+    expect(opened).toStrictEqual([env.helpFile]);
+    const failing: Env = { ...env, open: () => Promise.reject(new Error('no display')) };
+    expect(await run(['help', '--open'], failing)).toBe(
+      `Could not open a browser. The help page is at ${env.helpFile}.\n`,
+    );
+  });
+
+  it('says how to build the help page when it is missing', async () => {
+    const { env } = await makeHome();
+    await expect(run(['help', '--open'], env)).rejects.toThrow('Run npm run build');
   });
 });

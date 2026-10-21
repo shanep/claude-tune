@@ -1,7 +1,7 @@
 // The /tune commands: scan and report, apply a fix, and track a tip. Every
 // outside input comes in through Env, so tests run against a temp home.
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { renderAgent, renderSkill } from '../core/authoring/render.js';
@@ -31,6 +31,10 @@ export interface Env {
   readonly platform: NodeJS.Platform;
   readonly now: () => number;
   readonly git: GitRunner;
+  /** The built help page, dist/help.html beside the bundle. */
+  readonly helpFile: string;
+  /** Opens a file in the app the system picks for it, a browser for HTML. */
+  readonly open: (file: string) => Promise<void>;
 }
 
 interface Loaded {
@@ -237,4 +241,19 @@ export async function track(env: Env, tipId: string, on: boolean): Promise<strin
   return on
     ? `Tracking ${tipId} from now. A later /tune compares the sessions before and after.\n`
     : `Stopped tracking ${tipId}.\n`;
+}
+
+/** Opens the help page, or says where it is when nothing can open it, like over ssh. */
+export async function help(env: Env): Promise<string> {
+  try {
+    await access(env.helpFile);
+  } catch {
+    throw new Error(`${env.helpFile} is missing. Run npm run build to make it.`);
+  }
+  try {
+    await env.open(env.helpFile);
+  } catch {
+    return `Could not open a browser. The help page is at ${env.helpFile}.\n`;
+  }
+  return `Opened ${env.helpFile}.\n`;
 }

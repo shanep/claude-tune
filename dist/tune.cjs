@@ -28,7 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // src/cli/main.ts
+var import_node_child_process2 = require("node:child_process");
 var import_node_os = __toESM(require("node:os"), 1);
+var import_node_path11 = __toESM(require("node:path"), 1);
 var import_node_process = __toESM(require("node:process"), 1);
 
 // src/cli/paths.ts
@@ -493,10 +495,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path11) {
-  if (!path11)
+function getElementAtPath(obj, path12) {
+  if (!path12)
     return obj;
-  return path11.reduce((acc, key) => acc?.[key], obj);
+  return path12.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -836,11 +838,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path11, issues) {
+function prefixIssues(path12, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path11);
+    iss.path.unshift(path12);
     return iss;
   });
 }
@@ -5441,11 +5443,11 @@ function knobReader(effective) {
 }
 function modifiedCheck() {
   const known = /* @__PURE__ */ new Map();
-  return (path11) => {
-    let found = known.get(path11);
+  return (path12) => {
+    let found = known.get(path12);
     if (found === void 0) {
-      found = (0, import_node_fs2.statSync)(path11, { throwIfNoEntry: false })?.mtimeMs ?? null;
-      known.set(path11, found);
+      found = (0, import_node_fs2.statSync)(path12, { throwIfNoEntry: false })?.mtimeMs ?? null;
+      known.set(path12, found);
     }
     return found;
   };
@@ -6734,6 +6736,21 @@ async function track(env, tipId, on) {
 ` : `Stopped tracking ${tipId}.
 `;
 }
+async function help(env) {
+  try {
+    await (0, import_promises7.access)(env.helpFile);
+  } catch {
+    throw new Error(`${env.helpFile} is missing. Run npm run build to make it.`);
+  }
+  try {
+    await env.open(env.helpFile);
+  } catch {
+    return `Could not open a browser. The help page is at ${env.helpFile}.
+`;
+  }
+  return `Opened ${env.helpFile}.
+`;
+}
 
 // src/cli/run.ts
 var USAGE = `Usage: tune <command>
@@ -6743,6 +6760,7 @@ var USAGE = `Usage: tune <command>
   fix <fix-id> [--dry-run] Apply a setting or create fix, or print the task
                            for a launch fix. Tracks the tips it follows.
   track <tip-id> [--off]   Start or stop tracking a tip by hand.
+  help [--open]            Show this, or open the full guide in your browser.
 `;
 async function run(argv, env) {
   const flags = new Set(argv.filter((arg) => arg.startsWith("--")));
@@ -6764,7 +6782,9 @@ async function run(argv, env) {
       return track(env, target, !flags.has("--off"));
     }
     case "help": {
-      return USAGE;
+      return flags.has("--open") ? help(env) : `${USAGE}
+Run tune help --open for the full guide.
+`;
     }
     default: {
       throw new Error(`Unknown command ${command}.
@@ -6775,6 +6795,18 @@ ${USAGE}`);
 }
 
 // src/cli/main.ts
+function openFile(file) {
+  const command = import_node_process.default.platform === "darwin" ? "open" : "xdg-open";
+  return new Promise((resolve, reject) => {
+    (0, import_node_child_process2.execFile)(command, [file], (error) => {
+      if (error === null) {
+        resolve();
+      } else {
+        reject(error);
+      }
+    });
+  });
+}
 function envNow() {
   return {
     paths: pathsFor(import_node_process.default.env, import_node_os.default.homedir()),
@@ -6782,7 +6814,10 @@ function envNow() {
     env: import_node_process.default.env,
     platform: import_node_process.default.platform,
     now: () => Date.now(),
-    git: runGit
+    git: runGit,
+    // The build writes help.html next to tune.cjs.
+    helpFile: import_node_path11.default.join(import_node_path11.default.dirname(import_node_path11.default.resolve(import_node_process.default.argv[1] ?? ".")), "help.html"),
+    open: openFile
   };
 }
 run(import_node_process.default.argv.slice(2), envNow()).then(

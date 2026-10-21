@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tune help</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --text: #1f2328;
+  --muted: #59636e;
+  --background: #ffffff;
+  --panel: #f6f8fa;
+  --border: #d1d9e0;
+  --link: #0969da;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e6edf3;
+    --muted: #9198a1;
+    --background: #0d1117;
+    --panel: #151b23;
+    --border: #3d444d;
+    --link: #4493f8;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+h1, h2, h3 {
+  line-height: 1.25;
+  margin: 2rem 0 0.75rem;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+a {
+  color: var(--link);
+}
+
+code {
+  font: 0.875em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--panel);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--panel);
+}
+</style>
+</head>
+<body>
+<main>
+<h1 id="tune-help">tune help</h1>
+<p>tune reads your Claude Code session transcripts, shows where the tokens went
+and offers fixes. Everything runs locally with node. Nothing gets sent
+anywhere.</p>
+<p>This page covers what tune reads, how to read the report, every tip and fix,
+how tracking works and where tune keeps its files. Open it any time with:</p>
+<pre><code class="language-bash">node dist/tune.cjs help --open
+</code></pre>
+<h2 id="quick-start">Quick start</h2>
+<ol>
+<li>Run <code>/tune:tune</code> in a Claude Code session (or <code>/tune</code> if nothing else uses
+that name).</li>
+<li>Claude runs the scan and walks you through the tips, your costliest
+sessions and your hot files.</li>
+<li>Pick the fixes you want. Claude asks before applying any of them.</li>
+<li>Run <code>/tune</code> again in a week or two to see whether the tips you took helped.</li>
+</ol>
+<p>The first scan reads every transcript and can take a few seconds. Later scans
+only read what changed.</p>
+<h2 id="what-tune-reads">What tune reads</h2>
+<p>Claude Code saves every session as a JSONL file under <code>~/.claude/projects</code>,
+one folder per working directory. Subagent transcripts sit in a folder next
+to the session. tune reads all of them.</p>
+<p>It does not matter where the session ran. The CLI, the VS Code extension, the
+desktop app, <code>claude -p</code> and the Agent SDK all save to the same folder, and
+the report tells you which one each session came from:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Where it ran</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CLI</td>
+<td><code>claude</code> in a terminal</td>
+</tr>
+<tr>
+<td>VS Code</td>
+<td>The Claude Code extension for VS Code</td>
+</tr>
+<tr>
+<td>Desktop</td>
+<td>The Claude desktop app</td>
+</tr>
+<tr>
+<td>claude -p</td>
+<td><code>claude -p</code>, the non-interactive mode scripts use</td>
+</tr>
+<tr>
+<td>Agent SDK</td>
+<td>A program built on the Agent SDK</td>
+</tr>
+<tr>
+<td>unknown</td>
+<td>The transcript does not say</td>
+</tr>
+</tbody></table>
+<p>A few things are left out:</p>
+<ul>
+<li><strong>Sessions with no requests.</strong> You opened them and left, so they say
+nothing about how you work.</li>
+<li><strong>Deleted transcripts.</strong> Claude Code deletes a transcript 30 days after its
+last use unless <code>cleanupPeriodDays</code> says otherwise. tune keeps what it
+measured for a year, but it cannot measure a session it never saw. The
+<code>transcript-cleanup</code> tip covers this.</li>
+</ul>
+<p>If you set <code>CLAUDE_CONFIG_DIR</code>, tune reads that folder instead of
+<code>~/.claude</code>, the same way Claude Code does.</p>
+<h3 id="what-the-dollar-figures-mean">What the dollar figures mean</h3>
+<p>Every cost is worked out at API list price from the token counts in the
+transcripts. That is what the same work would cost on the API. On a Pro or
+Max plan you do not pay that amount, but the figures still show which
+sessions and habits use up your limits fastest.</p>
+<h2 id="the-report">The report</h2>
+<p><code>tune report</code> prints the report as Markdown. <code>/tune</code> reads it and walks you
+through it. It has these parts, in order.</p>
+<p><strong>Totals.</strong> The number of sessions, what they cost, how much of it went to
+re-reading cached context, what went to subagents, and the average and
+largest context. The next line splits sessions and spend by where they ran.</p>
+<p><strong>Where the spend went.</strong> The cost split by what filled the context:</p>
+<table>
+<thead>
+<tr>
+<th>Slice</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>System prompt and tool definitions</td>
+<td>Claude Code&#39;s own prompt and the tool definitions sent with every request</td>
+</tr>
+<tr>
+<td>CLAUDE.md and memory</td>
+<td>Your instruction files, sent with every request</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td>The skill list and the body of each skill a session loaded</td>
+</tr>
+<tr>
+<td>Hooks and reminders</td>
+<td>Hook output and notes Claude Code adds to the conversation as it goes</td>
+</tr>
+<tr>
+<td>Reading files</td>
+<td>Files Claude read, carried for the rest of the session</td>
+</tr>
+<tr>
+<td>Command and search output</td>
+<td>Shell output, search results and other tool results</td>
+</tr>
+<tr>
+<td>Web and connectors</td>
+<td>Web search, web fetch and MCP connector results</td>
+</tr>
+<tr>
+<td>Code and commands Claude wrote</td>
+<td>What Claude put in tool calls, like file edits and commands</td>
+</tr>
+<tr>
+<td>Subagent reports</td>
+<td>What subagents sent back to the main session</td>
+</tr>
+<tr>
+<td>Prompts, replies and thinking</td>
+<td>Your prompts and Claude&#39;s replies, carried from turn to turn</td>
+</tr>
+<tr>
+<td>Writing replies (output tokens)</td>
+<td>The tokens Claude wrote in each response</td>
+</tr>
+</tbody></table>
+<p>Every request sends the whole conversation again, so something read early in
+a long session is paid for on every request after it. That is why reading files
+and command output are often the biggest slices.</p>
+<p><strong>Tips.</strong> What stands out across your sessions, worst first. Each one has a
+finding with numbers, advice, what following the advice gives up, when to
+skip it, the sessions that show it worst and the fixes on offer. See
+<a href="#tips">Tips</a>.</p>
+<p><strong>Costliest sessions.</strong> Up to 8 sessions that cost $3 or more, each with
+where and when it ran, its context size, the spend split, the causes that
+drove the cost and what fixing each would save, and the heaviest items it
+carried.</p>
+<p><strong>Hot files.</strong> Files that sessions kept reading, by what carrying them in
+context cost. A file shows up once at least 2 sessions read it. Short,
+focused files are cheaper to read, so a big hot file is a good one to split.</p>
+<p><strong>Suggested skills and agents.</strong> Skills and agents tune can write for you,
+with the reason it suggests each one. See <a href="#fixes">Fixes</a>.</p>
+<h2 id="tips">Tips</h2>
+<p>Each tip has an id you use with <code>fix</code> and <code>track</code>, and a severity: high,
+medium or low. A tip only shows when it is worth acting on.</p>
+<h3 id="file-reads-high">file-reads (high)</h3>
+<p><strong>Files read once are paid for on every later request.</strong> A file read on
+request 20 of a 400 request session is sent 380 more times. Hand searches to
+a subagent such as scout, read line ranges instead of whole files, and keep
+the files sessions read most short.</p>
+<p>Fixes: split the hot files (launch), add the scout agent (create).
+Skip it for short sessions, which pay little to carry a file.</p>
+<h3 id="context-reread-high">context-reread (high)</h3>
+<p><strong>Most of the spend is re-reading old context.</strong> The 300th turn of a session
+costs far more than the 3rd. Start a new session when you move on to a new
+task, use <code>/clear</code> when you switch to something unrelated, and <code>/compact</code>
+with a focus at natural breakpoints.</p>
+<p>Fixes: compact at 200K tokens (knob), add the scout agent (create).
+Skip it in the middle of hard debugging. Write a handoff note first and
+start fresh once that task is done.</p>
+<h3 id="huge-context-high">huge-context (high)</h3>
+<p><strong>Sessions grow huge without compacting.</strong> Lower <code>autoCompactWindow</code> so
+Claude Code compacts long before the 1M limit, or write a handoff note and
+carry on in a fresh session.</p>
+<p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
+Skip it for work that needs a lot in view at once, like a refactor across
+many files.</p>
+<h3 id="unused-tools-medium">unused-tools (medium)</h3>
+<p><strong>Every request carries tools that never get used.</strong> A tool&#39;s definition goes
+out with every request whether Claude calls it or not. Adding a tool to
+<code>permissions.deny</code> leaves it out of the request.</p>
+<p>Fix: deny the tools you never use (knob).
+Keep a tool you use now and then, even if only in a few sessions.</p>
+<h3 id="heavy-skills-medium">heavy-skills (medium)</h3>
+<p><strong>Skills cost more to carry than they need to.</strong> A loaded skill stays in
+context for the rest of the session. Keep SKILL.md to the steps Claude needs
+every time and move reference material into files it reads only when needed.</p>
+<p>Fix: slim the heaviest skills (launch).
+Skip it for short skills or ones used only in short sessions.</p>
+<h3 id="idle-rewrite-medium">idle-rewrite (medium)</h3>
+<p><strong>Resuming big sessions after a break rewrites the cache.</strong> The prompt cache
+expires after a few minutes without a request. Coming back to a 500K session
+after lunch writes all of it again, about $2.50 at Opus prices.</p>
+<p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
+Skip it for short breaks.</p>
+<h3 id="subagent-model-medium">subagent-model (medium)</h3>
+<p><strong>Subagents run on the most expensive models.</strong> Most subagent work is
+searching and summarizing, which Sonnet or Haiku do well for a fraction of
+the price.</p>
+<p>Fixes: run subagents on Sonnet with <code>CLAUDE_CODE_SUBAGENT_MODEL</code> (knob), add
+the scout agent on Haiku (create).
+Keep Opus for agents that review code, plan or debug by giving them
+<code>model: opus</code> in their frontmatter.</p>
+<h3 id="big-results-medium">big-results (medium)</h3>
+<p><strong>Huge tool output stays in context.</strong> Filter output before Claude sees it,
+ask for line ranges, or cap Bash output with <code>BASH_MAX_OUTPUT_LENGTH</code>.</p>
+<p>Fixes: cap shell output at 15,000 characters (knob), add the quiet-run skill
+(create).
+Let the full output through when you do not know yet what you are looking
+for.</p>
+<h3 id="repeated-commands-medium">repeated-commands (medium)</h3>
+<p><strong>The same commands run over and over.</strong> Polling a build, server or CI run
+from the main session sends the whole context again each time.</p>
+<p>Fixes: add the ci-watch agent, the dev-server skill and the quiet-run skill
+(create).
+A quick test or build you rerun after each small edit is fine.</p>
+<h3 id="long-sessions-medium">long-sessions (medium)</h3>
+<p><strong>Long sessions mix several tasks.</strong> Keep one task per session and put facts
+every session needs in CLAUDE.md or a skill.</p>
+<p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
+Stay in one session when the tasks build on each other.</p>
+<h3 id="denials-medium">denials (medium)</h3>
+<p><strong>Tool calls keep getting denied.</strong> Each denied call is a wasted turn. Add
+allow rules for the read-only commands Claude keeps asking for.</p>
+<p>Fix: run <code>/fewer-permission-prompts</code> in the project with the most denials
+(launch).
+Keep denying anything that pushes, deletes, deploys or touches production.</p>
+<h3 id="instructions-low">instructions (low)</h3>
+<p><strong>CLAUDE.md and memory are sent with every request.</strong> Keep them to one line
+per rule.</p>
+<p>Fix: have Claude tighten <code>~/.claude/CLAUDE.md</code> and the memory index (launch).
+Leave a rule long when its detail prevents a costly mistake.</p>
+<h3 id="rereads-low">rereads (low)</h3>
+<p><strong>Files are read again and again.</strong> Each read of a whole file adds it to
+context again. Ask for the lines you need, or grep for them.</p>
+<p>Fix: add the scout agent (create).
+A reread after the file changed is worth it.</p>
+<h3 id="tool-errors-low">tool-errors (low)</h3>
+<p><strong>Many tool calls fail.</strong> Put the exact build, test and lint commands, and
+the setup they need, in CLAUDE.md.</p>
+<p>Fix: have Claude find the failing commands and add the right ones to the
+project&#39;s CLAUDE.md (launch).
+Failing tests and type errors do not count. They are how Claude finds
+problems.</p>
+<h3 id="cd-commands-low">cd-commands (low)</h3>
+<p><strong>Commands keep changing folders.</strong> Start sessions in the project folder, so
+its CLAUDE.md and skills load, and use absolute paths or <code>git -C</code> instead of
+<code>cd</code>. Claude Code puts the shell back in the session folder after a <code>cd</code>
+outside it, so every later command there starts with <code>cd</code> again.</p>
+<p>Fix: add the folders sessions keep going to to
+<code>permissions.additionalDirectories</code> (knob), so the shell stays after one
+<code>cd</code>. Sessions can then also read and edit files there.
+Work across several repos cannot always avoid it.</p>
+<h3 id="transcript-cleanup-low">transcript-cleanup (low)</h3>
+<p><strong>Claude Code deletes old transcripts.</strong> It shows once your oldest session is
+close to the <code>cleanupPeriodDays</code> limit (30 days by default) and the setting is
+under 90 days. Raising it lets tune measure sessions it never scanned in
+time, and lets <code>/resume</code> reach them.</p>
+<p>Fix: keep transcripts for 90 days (knob).
+Transcripts take disk space roughly in proportion to the days kept, so skip
+it when disk space is tight.</p>
+<h2 id="fixes">Fixes</h2>
+<p>Every fix has an id like <code>knob:autoCompactWindow</code>. The report lists them
+under each tip. There are three kinds.</p>
+<p><strong>knob</strong> sets one key in <code>~/.claude/settings.json</code>. Environment settings like
+<code>CLAUDE_CODE_SUBAGENT_MODEL</code> go in its <code>env</code> block. If the file is a symlink
+into a dotfiles repo, tune writes through the link, so the link stays. A copy
+of the old file goes in the backups folder first. A knob already set the way
+the fix wants shows as already applied. New sessions pick up the change.</p>
+<p><strong>create</strong> writes a skill or agent into <code>~/.claude/skills</code> or
+<code>~/.claude/agents</code>. It never overwrites a file that is already there, and
+one already in the project&#39;s <code>.claude</code> folder counts as done.</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Kind</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>handoff</td>
+<td>skill</td>
+<td>Writes a short handoff note so you can /clear or start fresh without losing the thread</td>
+</tr>
+<tr>
+<td>scout</td>
+<td>agent</td>
+<td>A read-only search agent on Haiku that returns only the answer</td>
+</tr>
+<tr>
+<td>quiet-run</td>
+<td>skill</td>
+<td>Runs builds and tests with output in a log file and brings back only the errors</td>
+</tr>
+<tr>
+<td>land</td>
+<td>skill</td>
+<td>Commits, rebases onto the default branch, reruns checks, pushes and removes the worktree</td>
+</tr>
+<tr>
+<td>ci-watch</td>
+<td>agent</td>
+<td>Waits on a GitHub Actions run on Haiku and reports only the result or the failing lines</td>
+</tr>
+<tr>
+<td>dev-server</td>
+<td>skill</td>
+<td>Starts, restarts and stops local servers in the background and waits until they answer</td>
+</tr>
+</tbody></table>
+<p><strong>launch</strong> is a task Claude does in the session, like splitting a big file or
+trimming a skill. <code>tune fix &lt;id&gt;</code> prints the task, the folder to do it in and
+whether to make a new worktree. Claude shows it to you and asks before
+starting.</p>
+<p>Use <code>--dry-run</code> to see what a knob or create fix would do without doing it.</p>
+<h2 id="tracking">Tracking</h2>
+<p>Applying a knob or create fix starts tracking the tips it follows. You can
+also track a tip by hand with <code>tune track &lt;tip-id&gt;</code>, which is how you mark a
+habit change, like starting fresh sessions more often.</p>
+<p>Once a tip is tracked, a later report compares the sessions that started
+after that moment with the sessions from the 30 days before. Sessions that
+were already running when tracking started are left out. It compares:</p>
+<ul>
+<li>the habit the tip is about, like average context or denials,</li>
+<li>the cost per prompt,</li>
+<li>the side effects the tip warns about.</li>
+</ul>
+<p>The verdict is one of:</p>
+<table>
+<thead>
+<tr>
+<th>Verdict</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>better</td>
+<td>The habit improved and nothing it could cost got worse</td>
+</tr>
+<tr>
+<td>mixed</td>
+<td>The habit improved, but a side effect got worse</td>
+</tr>
+<tr>
+<td>same</td>
+<td>Nothing moved more than 10%</td>
+</tr>
+<tr>
+<td>worse</td>
+<td>The habit, or a side effect, got worse</td>
+</tr>
+<tr>
+<td>early</td>
+<td>Fewer than 5 sessions have run since tracking started</td>
+</tr>
+<tr>
+<td>no-baseline</td>
+<td>There were no sessions in the 30 days before to compare with</td>
+</tr>
+</tbody></table>
+<p>A tracked tip stays in the report even once the habit no longer stands out,
+so you can still see how it went. Stop tracking it with
+<code>tune track &lt;tip-id&gt; --off</code>.</p>
+<h2 id="command-line">Command line</h2>
+<p>The skill runs <code>dist/tune.cjs</code> with node, and you can run it yourself from
+the plugin folder:</p>
+<pre><code class="language-bash">node dist/tune.cjs report                 # Markdown report
+node dist/tune.cjs report --json          # everything, as JSON
+node dist/tune.cjs fix &lt;fix-id&gt; --dry-run # what a fix would do
+node dist/tune.cjs fix &lt;fix-id&gt;           # apply a fix
+node dist/tune.cjs track &lt;tip-id&gt; [--off] # start or stop tracking a tip
+node dist/tune.cjs help                   # the commands
+node dist/tune.cjs help --open            # this page, in your browser
+</code></pre>
+<p>With no command, it runs <code>report</code>. You can also pass any of these to the
+skill, like <code>/tune fix knob:autoCompactWindow</code>.</p>
+<p>The installed plugin lives under <code>~/.claude/plugins</code>. In a Claude Code
+session, <code>${CLAUDE_PLUGIN_ROOT}</code> points at it.</p>
+<h2 id="files-and-settings">Files and settings</h2>
+<p>tune keeps its own files outside the plugin folder, since a plugin update
+replaces that folder:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tuning.json</code></td>
+<td>What tune measured for each session, so a rescan only reads transcripts that changed</td>
+</tr>
+<tr>
+<td><code>tuning-tracked.json</code></td>
+<td>The tips you track and since when</td>
+</tr>
+<tr>
+<td><code>backups/</code></td>
+<td>Copies of <code>settings.json</code> from before each change tune made</td>
+</tr>
+</tbody></table>
+<p>They live in <code>${XDG_STATE_HOME:-~/.local/state}/claude-tune</code>. These
+environment variables change where things go:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>CLAUDE_TUNE_STATE_DIR</code></td>
+<td>Where tune keeps its own files</td>
+</tr>
+<tr>
+<td><code>XDG_STATE_HOME</code></td>
+<td>The base for the default state folder</td>
+</tr>
+<tr>
+<td><code>CLAUDE_CONFIG_DIR</code></td>
+<td>Where Claude Code keeps transcripts and settings, <code>~/.claude</code> by default</td>
+</tr>
+</tbody></table>
+<p>tune reads settings the way Claude Code layers them, so it can tell whether a
+fix is already in place. From highest to lowest: managed settings, the
+project&#39;s <code>.claude/settings.local.json</code> and <code>.claude/settings.json</code>,
+<code>~/.claude/settings.json</code>, then the environment. It only ever writes the user
+file.</p>
+<p>After an update that changes what tune measures, the next scan reads every
+transcript again. That takes a few seconds once.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p><strong>It says there are no sessions.</strong> Check that <code>~/.claude/projects</code> (or
+<code>$CLAUDE_CONFIG_DIR/projects</code>) has <code>.jsonl</code> files in it. Sessions with no
+requests do not count.</p>
+<p><strong>My VS Code sessions are missing.</strong> They save to the same folder as the
+CLI, so they show up under the VS Code label. If you set <code>CLAUDE_CONFIG_DIR</code>
+in the extension&#39;s <code>claudeCode.environmentVariables</code> setting, run tune with
+the same value.</p>
+<p><strong>A fix says it is not on offer.</strong> Fixes only show while their tip applies.
+Run <code>report</code> to see the current list. Skills and agents can always be created
+with <code>fix create:&lt;id&gt;</code>.</p>
+<p><strong><code>help --open</code> did not open anything.</strong> It uses <code>open</code> on macOS and
+<code>xdg-open</code> on Linux. Without a desktop, like over ssh, open the path it
+prints yourself.</p>
+<p><strong>node complains.</strong> tune needs node 22.3 or later on your PATH.</p>
+</main>
+</body>
+</html>

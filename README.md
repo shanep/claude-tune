@@ -51,7 +51,13 @@ node dist/tune.cjs report --json    # everything, as JSON
 node dist/tune.cjs fix <fix-id> --dry-run
 node dist/tune.cjs fix <fix-id>
 node dist/tune.cjs track <tip-id> [--off]
+node dist/tune.cjs help --open      # the full guide, in your browser
 ```
+
+The full guide is [docs/help.md](docs/help.md). It covers every tip and fix,
+how tracking works and where tune keeps its files. The build turns it into
+`dist/help.html`, which `help --open` opens with `open` on macOS or
+`xdg-open` on Linux.
 
 The index of scanned sessions and the tracked tips live in
 `${XDG_STATE_HOME:-~/.local/state}/claude-tune`. Set `CLAUDE_TUNE_STATE_DIR`
