@@ -1,6 +1,5 @@
 {
   "name": "tune",
-  "version": "0.1.0",
   "description": "Find where your Claude Code sessions spend tokens, from your own transcripts, and apply the fixes.",
   "author": { "name": "Shane Panter" },
   "homepage": "https://github.com/shanep/claude-tune",
