@@ -10,9 +10,11 @@
     "node": ">=22.3"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "check": "npm run -s typecheck && npm test && npm run -s build && git diff --exit-code -- dist",
     "tune": "node dist/tune.cjs"
   },
   "dependencies": {
