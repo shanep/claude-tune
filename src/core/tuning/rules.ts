@@ -3,6 +3,7 @@
 // Thresholds are set so a tip only shows when it is worth acting on.
 
 
+import { KEEP_DAYS, keptDays } from './cleanup.js';
 import type { SessionMeasure } from './measure.js';
 import { costTotal } from './measure.js';
 import type { TipRule } from './rule-type.js';
@@ -15,6 +16,8 @@ import { percent, plural, tokens, usd } from './words.js';
 /** Claude Code's own settings, commands or behavior, so the rule fits Claude Code alone. */
 export type { TipRule } from './rule-type.js';
 
+
+const DAY_MS = 24 * 60 * 60_000;
 
 function failures(measure: SessionMeasure): number {
   return measure.toolErrors - measure.denials;
@@ -367,6 +370,42 @@ export const RULES: readonly TipRule[] = [
     metric: (m) => m.cdCommands,
     detail: (m) =>
       `${m.cdCommands.toLocaleString('en-US')} of ${plural(m.bashCommands, 'command')} start with cd`,
+  },
+  {
+    id: 'transcript-cleanup',
+    severity: 'low',
+    title: 'Claude Code deletes old transcripts',
+    advice: [
+      `Raise cleanupPeriodDays in ~/.claude/settings.json to ${KEEP_DAYS.toString()} or more, so sessions stay on disk long enough for /tune to compare months and for /resume to reach them.`,
+      'This covers every place Claude Code runs, the VS Code extension and the desktop app included, since they all save to ~/.claude/projects.',
+    ],
+    fixes: [],
+    pros: [
+      '/tune measures sessions it never scanned in time, like a VS Code session from five weeks ago, and /resume can still open them.',
+    ],
+    cons: [
+      'Transcripts take disk space under ~/.claude/projects, roughly in proportion to the days kept.',
+    ],
+    track: null,
+    skipWhen: 'Disk space is tight, or you never look back at sessions older than a month.',
+    finding: (t, env) => {
+      const set = env.knob('cleanupPeriodDays');
+      const days = keptDays(set);
+      if (days >= KEEP_DAYS || t.oldestUpdatedAt === null) {
+        return null;
+      }
+      // Until the oldest session is nearly that old, nothing has been deleted yet.
+      const age = (env.now - t.oldestUpdatedAt) / DAY_MS;
+      if (age < days - 2) {
+        return null;
+      }
+      const why =
+        typeof set === 'number' ? `cleanupPeriodDays is ${days.toString()}` : 'the default';
+      return `Claude Code deletes a transcript once it goes unused for ${plural(days, 'day')} (${why}), so the oldest session left is from ${new Date(t.oldestUpdatedAt).toISOString().slice(0, 10)}. /tune keeps what it measured for a year, but a session it never scanned before then is gone for good.`;
+    },
+    flags: () => false,
+    metric: () => 0,
+    detail: () => '',
   },
 ];
 

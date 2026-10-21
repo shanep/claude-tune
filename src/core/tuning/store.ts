@@ -69,6 +69,7 @@ const measureSchema = z.object({
   sessionId: z.string(),
   title: z.string(),
   cwd: z.nullable(z.string()),
+  entrypoint: z.nullable(z.string()),
   startedAt: z.number(),
   updatedAt: z.number(),
   prompts: count,
@@ -129,7 +130,7 @@ const measureSchema = z.object({
  * Bump when the measure changes meaning. A file of another version starts
  * over, since the scan can rebuild it from the transcripts.
  */
-const VERSION = 1;
+const VERSION = 2;
 
 const fileSchema = z.object({
   version: z.literal(VERSION),

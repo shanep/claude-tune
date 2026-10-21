@@ -67,7 +67,7 @@ export function buildTips(inputs: TipInputs): Tip[] {
     live: inputs.live,
   };
   for (const rule of RULES) {
-    const finding = rule.finding(inputs.totals);
+    const finding = rule.finding(inputs.totals, { knob: fixContext.knob, now: inputs.now });
     const since = inputs.tracked.get(rule.id);
     if (finding === null && since === undefined) {
       continue;
@@ -85,7 +85,7 @@ export function buildTips(inputs: TipInputs): Tip[] {
       cons: rule.cons,
       skipWhen: rule.skipWhen,
       impact:
-        since === undefined
+        since === undefined || rule.track === null
           ? null
           : impactOf({ tracking: rule.track, since, measures: inputs.all, now: inputs.now }),
     });

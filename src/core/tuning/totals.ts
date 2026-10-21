@@ -22,6 +22,8 @@ export interface Totals {
   readonly longSessions: number;
   readonly longestPrompts: number;
   readonly homeSessions: number;
+  /** When the least recently used session last ran, or null with no sessions. */
+  readonly oldestUpdatedAt: number | null;
   readonly compactions: number;
   readonly idleRewrites: number;
   readonly idleRewriteUsd: number;
@@ -114,6 +116,7 @@ export function totalsOf(measures: readonly SessionMeasure[], home: string): Tot
     longSessions: measures.filter((m) => m.prompts > LONG_SESSION_PROMPTS).length,
     longestPrompts: Math.max(0, ...measures.map((m) => m.prompts)),
     homeSessions: measures.filter((m) => m.cwd === home).length,
+    oldestUpdatedAt: measures.length === 0 ? null : Math.min(...measures.map((m) => m.updatedAt)),
     compactions: sum(measures, (m) => m.compactions),
     idleRewrites: sum(measures, (m) => m.idleRewrites),
     idleRewriteUsd: sum(measures, (m) => m.idleRewriteUsd),

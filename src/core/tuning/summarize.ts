@@ -7,6 +7,7 @@ import { spendSlices, costlySessions, hotFiles } from './costly.js';
 import { unusedTools } from './fixes.js';
 import type { SessionMeasure } from './measure.js';
 import { cacheReadShare } from './rules.js';
+import { sourceOf, sourceSlices } from './source.js';
 import { buildSuggestions } from './suggestions.js';
 import { sessionUsd, totalsOf } from './totals.js';
 
@@ -58,6 +59,7 @@ export function summarize(inputs: SummaryInputs): TuningState {
     .map((measure) => ({
       sessionId: measure.sessionId,
       title: measure.title,
+      source: sourceOf(measure.entrypoint),
       updatedAt: measure.updatedAt,
       prompts: measure.prompts,
       requests: measure.requests,
@@ -77,6 +79,7 @@ export function summarize(inputs: SummaryInputs): TuningState {
     largestContext: totals.largestContext,
     subagentUsd: totals.subagentUsd,
     spend: spendSlices(totals.spend),
+    sources: sourceSlices(measures),
     costly: costlySessions(measures, unused),
     hotFiles: hot,
     tips,

@@ -4,6 +4,10 @@ A Claude Code plugin that reads your session transcripts in
 `~/.claude/projects`, shows where the tokens went and offers fixes. Everything
 runs locally with node. Nothing gets sent anywhere.
 
+It reads every session no matter where it ran. The CLI, the VS Code extension,
+the desktop app and `claude -p` all save to the same folder, and the report
+says which one each session came from.
+
 ## Install
 
 ```bash

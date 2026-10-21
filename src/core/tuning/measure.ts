@@ -41,6 +41,8 @@ export interface SessionMeasure {
   readonly sessionId: string;
   readonly title: string;
   readonly cwd: string | null;
+  /** What started the session, like cli, claude-vscode or sdk-ts. See source.ts. */
+  readonly entrypoint: string | null;
   /** Epoch ms of the first record. */
   readonly startedAt: number;
   /** Epoch ms of the last record. */
@@ -183,6 +185,7 @@ function hasBaseFields(record: TranscriptRecord): record is BaseRecord {
 class MainTally {
   title: string | null = null;
   cwd: string | null = null;
+  entrypoint: string | null = null;
   firstAt: number | null = null;
   lastAt: number | null = null;
   requests = 0;
@@ -226,6 +229,7 @@ class MainTally {
 
   private base(record: BaseRecord): void {
     this.cwd ??= record.cwd ?? null;
+    this.entrypoint ??= record.entrypoint ?? null;
     const at = parseTimestamp(record.timestamp);
     this.firstAt ??= at;
     this.lastAt = at ?? this.lastAt;
@@ -364,6 +368,7 @@ export function measureSession(input: MeasureInput): SessionMeasure {
     sessionId: input.sessionId,
     title: oneLine(main.title ?? fallbackTitle, TITLE_CHARS),
     cwd: main.cwd,
+    entrypoint: main.entrypoint,
     startedAt: main.firstAt ?? input.fallbackAt,
     updatedAt: main.lastAt ?? input.fallbackAt,
     prompts: prompts.length,

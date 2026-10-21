@@ -29,7 +29,7 @@ function session(
 }
 
 function finding(id: string, measures: readonly SessionMeasure[]): string | null {
-  return rule(id).finding(totalsOf(measures, HOME));
+  return rule(id).finding(totalsOf(measures, HOME), { knob: () => undefined, now: 2000 });
 }
 
 /** Five sessions that carried Artifact for `usd` in all. */

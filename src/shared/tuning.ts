@@ -119,6 +119,8 @@ export interface CostlySession {
   readonly sessionId: string;
   readonly title: string;
   readonly cwd: string | null;
+  /** Where it ran, like CLI or VS Code. */
+  readonly source: string;
   readonly updatedAt: number;
   readonly usd: number;
   readonly subagentUsd: number;
@@ -224,6 +226,8 @@ export interface Suggestion {
 export interface TuningSessionRow {
   readonly sessionId: string;
   readonly title: string;
+  /** Where it ran, like CLI or VS Code. */
+  readonly source: string;
   readonly updatedAt: number;
   readonly prompts: number;
   readonly requests: number;
@@ -237,6 +241,13 @@ export interface TuningSessionRow {
   readonly tips: readonly string[];
 }
 
+/** Sessions and spend from one place Claude Code runs, like CLI or VS Code. */
+export interface SourceSlice {
+  readonly label: string;
+  readonly sessions: number;
+  readonly usd: number;
+}
+
 export interface TuningState {
   readonly sessions: number;
   readonly totalUsd: number;
@@ -247,6 +258,8 @@ export interface TuningState {
   readonly subagentUsd: number;
   /** Where the spend went across every session, biggest first. */
   readonly spend: readonly SpendSlice[];
+  /** Sessions and spend by where they ran, costliest first. */
+  readonly sources: readonly SourceSlice[];
   /** The sessions that cost the most, each with why. */
   readonly costly: readonly CostlySession[];
   /** Files that cost the most to carry after reading them, worst first. */

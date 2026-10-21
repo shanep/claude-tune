@@ -42,7 +42,7 @@ describe('tips index', () => {
     index.entries.set('/p/s.jsonl', { stamp: { mtimeMs: 5, size: 9 }, measure, live: false });
     index.scannedAt = 77;
     await saveIndex(file, index);
-    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ version: 1, scannedAt: 77 });
+    expect(JSON.parse(await readFile(file, 'utf8'))).toMatchObject({ version: 2, scannedAt: 77 });
     const loaded = await loadIndex(file);
     expect(loaded.scannedAt).toBe(77);
     expect(loaded.entries.get('/p/s.jsonl')).toStrictEqual({

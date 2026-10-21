@@ -5,6 +5,7 @@
 
 import type { AutoFix } from '../../shared/tuning.js';
 
+import { KEEP_DAYS, keptDays } from './cleanup.js';
 import type { FixContext } from './fix-context.js';
 import { stringsOf } from './fix-context.js';
 import { cdFix } from './fixes-cd.js';
@@ -122,6 +123,19 @@ function outputFix(context: FixContext): AutoFix {
         'Sets BASH_MAX_OUTPUT_LENGTH so one noisy command cannot put 30,000 characters into the context for the rest of the session.',
     },
     (current) => Number(current) > 0 && Number(current) <= SMALL_OUTPUT,
+  );
+}
+
+function cleanupFix(context: FixContext): AutoFix {
+  return knobFix(
+    context,
+    {
+      key: 'cleanupPeriodDays',
+      value: KEEP_DAYS,
+      title: `Keep transcripts for ${KEEP_DAYS.toString()} days`,
+      detail: `Sets cleanupPeriodDays to ${KEEP_DAYS.toString()} in your user settings, so Claude Code keeps every session on disk for ${KEEP_DAYS.toString()} days instead of ${keptDays(context.knob('cleanupPeriodDays')).toString()}.`,
+    },
+    (current) => keptDays(current) >= KEEP_DAYS,
   );
 }
 
@@ -358,6 +372,7 @@ const BUILDERS: Readonly<Record<string, FixBuilder>> = {
   'heavy-skills': (c) => skillFixes(c),
   instructions: (c) => [instructionsFix(c)],
   'cd-commands': (c) => [cdFix(c)],
+  'transcript-cleanup': (c) => [cleanupFix(c)],
 };
 
 /** The fixes for a tip, the ones not yet applied first. */

@@ -42,6 +42,7 @@ describe('summarize', () => {
       {
         sessionId: 'dear',
         title: 'Dear',
+        source: 'CLI',
         updatedAt: 1000,
         prompts: 3,
         requests: 4,

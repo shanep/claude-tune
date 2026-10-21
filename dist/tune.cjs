@@ -144,6 +144,13 @@ function renderSkill(spec) {
   return render(spec.frontmatter, SKILL_FIELDS, spec.body);
 }
 
+// src/core/tuning/cleanup.ts
+var CLEANUP_DEFAULT_DAYS = 30;
+var KEEP_DAYS = 90;
+function keptDays(setting) {
+  return typeof setting === "number" && setting >= 0 ? setting : CLEANUP_DEFAULT_DAYS;
+}
+
 // src/core/knobs/json.ts
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -3778,6 +3785,7 @@ var MainTally = class {
   hours;
   title = null;
   cwd = null;
+  entrypoint = null;
   firstAt = null;
   lastAt = null;
   requests = 0;
@@ -3814,6 +3822,7 @@ var MainTally = class {
   }
   base(record2) {
     this.cwd ??= record2.cwd ?? null;
+    this.entrypoint ??= record2.entrypoint ?? null;
     const at = parseTimestamp(record2.timestamp);
     this.firstAt ??= at;
     this.lastAt = at ?? this.lastAt;
@@ -3943,6 +3952,7 @@ function measureSession(input) {
     sessionId: input.sessionId,
     title: oneLine2(main.title ?? fallbackTitle, TITLE_CHARS),
     cwd: main.cwd,
+    entrypoint: main.entrypoint,
     startedAt: main.firstAt ?? input.fallbackAt,
     updatedAt: main.lastAt ?? input.fallbackAt,
     prompts: prompts.length,
@@ -4035,6 +4045,7 @@ function totalsOf(measures, home) {
     longSessions: measures.filter((m) => m.prompts > LONG_SESSION_PROMPTS).length,
     longestPrompts: Math.max(0, ...measures.map((m) => m.prompts)),
     homeSessions: measures.filter((m) => m.cwd === home).length,
+    oldestUpdatedAt: measures.length === 0 ? null : Math.min(...measures.map((m) => m.updatedAt)),
     compactions: sum(measures, (m) => m.compactions),
     idleRewrites: sum(measures, (m) => m.idleRewrites),
     idleRewriteUsd: sum(measures, (m) => m.idleRewriteUsd),
@@ -4379,6 +4390,18 @@ function outputFix(context) {
     (current) => Number(current) > 0 && Number(current) <= SMALL_OUTPUT
   );
 }
+function cleanupFix(context) {
+  return knobFix(
+    context,
+    {
+      key: "cleanupPeriodDays",
+      value: KEEP_DAYS,
+      title: `Keep transcripts for ${KEEP_DAYS.toString()} days`,
+      detail: `Sets cleanupPeriodDays to ${KEEP_DAYS.toString()} in your user settings, so Claude Code keeps every session on disk for ${KEEP_DAYS.toString()} days instead of ${keptDays(context.knob("cleanupPeriodDays")).toString()}.`
+    },
+    (current) => keptDays(current) >= KEEP_DAYS
+  );
+}
 function denyFix(context) {
   const tools = unusedTools(context.totals);
   if (tools.length === 0) {
@@ -4571,7 +4594,8 @@ var BUILDERS = {
   "unused-tools": (c) => [denyFix(c)],
   "heavy-skills": (c) => skillFixes(c),
   instructions: (c) => [instructionsFix(c)],
-  "cd-commands": (c) => [cdFix(c)]
+  "cd-commands": (c) => [cdFix(c)],
+  "transcript-cleanup": (c) => [cleanupFix(c)]
 };
 function autoFixesFor(tipId, context) {
   const fixes = (BUILDERS[tipId]?.(context) ?? []).filter((fix2) => fix2 !== null);
@@ -5003,6 +5027,7 @@ var SPEND_RULES = [
 ];
 
 // src/core/tuning/rules.ts
+var DAY_MS = 24 * 60 * 6e4;
 function failures(measure) {
   return measure.toolErrors - measure.denials;
 }
@@ -5302,6 +5327,40 @@ var RULES = [
     flags: (m) => m.cdCommands >= 10 && ratio(m.cdCommands, m.bashCommands) >= 0.2,
     metric: (m) => m.cdCommands,
     detail: (m) => `${m.cdCommands.toLocaleString("en-US")} of ${plural(m.bashCommands, "command")} start with cd`
+  },
+  {
+    id: "transcript-cleanup",
+    severity: "low",
+    title: "Claude Code deletes old transcripts",
+    advice: [
+      `Raise cleanupPeriodDays in ~/.claude/settings.json to ${KEEP_DAYS.toString()} or more, so sessions stay on disk long enough for /tune to compare months and for /resume to reach them.`,
+      "This covers every place Claude Code runs, the VS Code extension and the desktop app included, since they all save to ~/.claude/projects."
+    ],
+    fixes: [],
+    pros: [
+      "/tune measures sessions it never scanned in time, like a VS Code session from five weeks ago, and /resume can still open them."
+    ],
+    cons: [
+      "Transcripts take disk space under ~/.claude/projects, roughly in proportion to the days kept."
+    ],
+    track: null,
+    skipWhen: "Disk space is tight, or you never look back at sessions older than a month.",
+    finding: (t, env) => {
+      const set = env.knob("cleanupPeriodDays");
+      const days = keptDays(set);
+      if (days >= KEEP_DAYS || t.oldestUpdatedAt === null) {
+        return null;
+      }
+      const age = (env.now - t.oldestUpdatedAt) / DAY_MS;
+      if (age < days - 2) {
+        return null;
+      }
+      const why = typeof set === "number" ? `cleanupPeriodDays is ${days.toString()}` : "the default";
+      return `Claude Code deletes a transcript once it goes unused for ${plural(days, "day")} (${why}), so the oldest session left is from ${new Date(t.oldestUpdatedAt).toISOString().slice(0, 10)}. /tune keeps what it measured for a year, but a session it never scanned before then is gone for good.`;
+    },
+    flags: () => false,
+    metric: () => 0,
+    detail: () => ""
   }
 ];
 function cacheReadShare(measure) {
@@ -5335,7 +5394,7 @@ function buildTips(inputs) {
     live: inputs.live
   };
   for (const rule of RULES) {
-    const finding = rule.finding(inputs.totals);
+    const finding = rule.finding(inputs.totals, { knob: fixContext.knob, now: inputs.now });
     const since = inputs.tracked.get(rule.id);
     if (finding === null && since === void 0) {
       continue;
@@ -5352,7 +5411,7 @@ function buildTips(inputs) {
       pros: rule.pros,
       cons: rule.cons,
       skipWhen: rule.skipWhen,
-      impact: since === void 0 ? null : impactOf({ tracking: rule.track, since, measures: inputs.all, now: inputs.now })
+      impact: since === void 0 || rule.track === null ? null : impactOf({ tracking: rule.track, since, measures: inputs.all, now: inputs.now })
     });
   }
   return tips.toSorted(
@@ -5775,6 +5834,7 @@ var measureSchema = object({
   sessionId: string2(),
   title: string2(),
   cwd: nullable(string2()),
+  entrypoint: nullable(string2()),
   startedAt: number2(),
   updatedAt: number2(),
   prompts: count2,
@@ -5830,7 +5890,7 @@ var measureSchema = object({
     )
   )
 });
-var VERSION = 1;
+var VERSION = 2;
 var fileSchema = object({
   version: literal(VERSION),
   scannedAt: nullable(number2()),
@@ -5871,6 +5931,29 @@ async function saveIndex(file, index) {
   };
   await writeFileAtomic({ target: file, content: `${JSON.stringify(data)}
 `, backup: null });
+}
+
+// src/core/tuning/source.ts
+var LABELS = {
+  cli: "CLI",
+  "claude-vscode": "VS Code",
+  "claude-desktop": "Desktop",
+  "sdk-cli": "claude -p"
+};
+function sourceOf(entrypoint) {
+  if (entrypoint === null || entrypoint === "") {
+    return "unknown";
+  }
+  return LABELS[entrypoint] ?? (entrypoint.startsWith("sdk-") ? "Agent SDK" : entrypoint);
+}
+function sourceSlices(measures) {
+  const slices = /* @__PURE__ */ new Map();
+  for (const measure of measures) {
+    const label = sourceOf(measure.entrypoint);
+    const slice = slices.get(label) ?? { sessions: 0, usd: 0 };
+    slices.set(label, { sessions: slice.sessions + 1, usd: slice.usd + sessionUsd(measure) });
+  }
+  return [...slices].map(([label, slice]) => ({ label, ...slice })).toSorted((left, right) => right.usd - left.usd);
 }
 
 // src/core/tuning/costly.ts
@@ -6041,6 +6124,7 @@ function costlySessions(measures, unused) {
     sessionId: measure.sessionId,
     title: measure.title,
     cwd: measure.cwd,
+    source: sourceOf(measure.entrypoint),
     updatedAt: measure.updatedAt,
     usd: sessionUsd(measure),
     subagentUsd: measure.subagentUsd,
@@ -6120,6 +6204,7 @@ function summarize(inputs) {
   const rows = measures.map((measure) => ({
     sessionId: measure.sessionId,
     title: measure.title,
+    source: sourceOf(measure.entrypoint),
     updatedAt: measure.updatedAt,
     prompts: measure.prompts,
     requests: measure.requests,
@@ -6137,6 +6222,7 @@ function summarize(inputs) {
     largestContext: totals.largestContext,
     subagentUsd: totals.subagentUsd,
     spend: spendSlices(totals.spend),
+    sources: sourceSlices(measures),
     costly: costlySessions(measures, unused),
     hotFiles: hot,
     tips,
@@ -6263,7 +6349,7 @@ function costlyLines(session, home) {
   const lines = [
     `### ${oneLine3(session.title)}: ${usd(session.usd)}`,
     "",
-    `${day(session.updatedAt)}${where}. ${plural(session.requests, "request")}, ${tokens(session.averageContext)} average and ${tokens(session.peakContext)} peak context, ${usd(session.subagentUsd)} in subagents.`
+    `${day(session.updatedAt)}${where}, from ${session.source}. ${plural(session.requests, "request")}, ${tokens(session.averageContext)} average and ${tokens(session.peakContext)} peak context, ${usd(session.subagentUsd)} in subagents.`
   ];
   const spend = session.spend.slice(0, 4).map((slice) => `${slice.label} ${usd(slice.usd)}`).join(", ");
   if (spend !== "") {
@@ -6306,6 +6392,10 @@ function renderReport(state, options) {
     `${plural(state.sessions, "session")}, ${usd(state.totalUsd)} at list price. ${percent(cacheShare)} of it re-read cached context, ${usd(state.subagentUsd)} went to subagents. Average context ${tokens(state.averageContext)} tokens, largest ${tokens(state.largestContext)}.`,
     ""
   ];
+  if (state.sources.length > 0) {
+    const sources = state.sources.map((slice) => `${slice.label} ${plural(slice.sessions, "session")} (${usd(slice.usd)})`).join(", ");
+    lines.push(`By where they ran: ${sources}.`, "");
+  }
   if (state.spend.length > 0) {
     lines.push(
       "## Where the spend went",

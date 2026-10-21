@@ -94,7 +94,7 @@ function costlyLines(session: CostlySession, home: string): string[] {
   const lines = [
     `### ${oneLine(session.title)}: ${usd(session.usd)}`,
     '',
-    `${day(session.updatedAt)}${where}. ${plural(session.requests, 'request')}, ${tokens(session.averageContext)} average and ${tokens(session.peakContext)} peak context, ${usd(session.subagentUsd)} in subagents.`,
+    `${day(session.updatedAt)}${where}, from ${session.source}. ${plural(session.requests, 'request')}, ${tokens(session.averageContext)} average and ${tokens(session.peakContext)} peak context, ${usd(session.subagentUsd)} in subagents.`,
   ];
   const spend = session.spend
     .slice(0, 4)
@@ -142,6 +142,12 @@ export function renderReport(state: TuningState, options: ReportOptions): string
     `${plural(state.sessions, 'session')}, ${usd(state.totalUsd)} at list price. ${percent(cacheShare)} of it re-read cached context, ${usd(state.subagentUsd)} went to subagents. Average context ${tokens(state.averageContext)} tokens, largest ${tokens(state.largestContext)}.`,
     '',
   ];
+  if (state.sources.length > 0) {
+    const sources = state.sources
+      .map((slice) => `${slice.label} ${plural(slice.sessions, 'session')} (${usd(slice.usd)})`)
+      .join(', ');
+    lines.push(`By where they ran: ${sources}.`, '');
+  }
   if (state.spend.length > 0) {
     lines.push(
       '## Where the spend went',

@@ -333,6 +333,13 @@ describe('every fix', () => {
           'Has Claude rewrite ~/.claude/CLAUDE.md and the memory index to say the same in fewer words. They load with every request, which cost $1.50 on the sessions measured.',
         ],
       ],
+      'transcript-cleanup': [
+        [
+          'knob:cleanupPeriodDays',
+          'Keep transcripts for 90 days',
+          'Sets cleanupPeriodDays to 90 in your user settings, so Claude Code keeps every session on disk for 90 days instead of 30.',
+        ],
+      ],
     };
     for (const [tip, fixes] of Object.entries(expected)) {
       const found = autoFixesFor(tip, fullContext()).map((fix) => [fix.id, fix.title, fix.detail]);
@@ -387,6 +394,9 @@ describe('when a fix counts as done', () => {
     expect(
       ['15000', '15001', '0', undefined].map((value) => applied('big-results', value)),
     ).toStrictEqual([true, false, false, false]);
+    expect(
+      [90, 365, 89, 0, '90', undefined].map((value) => applied('transcript-cleanup', value)),
+    ).toStrictEqual([true, true, false, false, false, false]);
     expect(applied('unused-tools', ['Artifact', 7])).toBe(true);
     expect(
       autoFixesFor('unused-tools', fullContext({ knob: () => ['Bash(rm *)', 7] }))[0],

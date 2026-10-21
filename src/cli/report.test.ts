@@ -36,7 +36,8 @@ describe('renderReport', () => {
     expect(text).toContain('`knob:autoCompactWindow` [knob] Compact every session at 200K tokens.');
     expect(text).toContain('## Costliest sessions');
     expect(text).toContain('### Dear session: $');
-    expect(text).toContain('in ~/repos/app.');
+    expect(text).toContain('in ~/repos/app, from CLI.');
+    expect(text).toContain('By where they ran: CLI 1 session ($4.00).');
     expect(text).not.toMatch(/[\u2013\u2014]/u);
   });
 

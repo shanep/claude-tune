@@ -7,6 +7,7 @@ import type { CostCause, CostlySession, HotFile, SpendSlice } from '../../shared
 import type { SessionMeasure } from './measure.js';
 import type { SpendSplit } from './spend.js';
 import { addSpend, SPEND_LABELS, SPEND_SOURCES, skillName } from './spend.js';
+import { sourceOf } from './source.js';
 import { sessionUsd } from './totals.js';
 import { plural, tokens, usd } from './words.js';
 
@@ -214,6 +215,7 @@ export function costlySessions(
       sessionId: measure.sessionId,
       title: measure.title,
       cwd: measure.cwd,
+      source: sourceOf(measure.entrypoint),
       updatedAt: measure.updatedAt,
       usd: sessionUsd(measure),
       subagentUsd: measure.subagentUsd,

@@ -46,7 +46,7 @@ function rule(id: string): TipRule {
 }
 
 function finding(id: string, measures: readonly SessionMeasure[]): string | null {
-  return rule(id).finding(totalsOf(measures, HOME));
+  return rule(id).finding(totalsOf(measures, HOME), { knob: () => undefined, now: 2000 });
 }
 
 function tipsOf(
@@ -78,7 +78,7 @@ describe('buildTips', () => {
 
   it('measures every rule against a target that is not just the cost', () => {
     for (const each of RULES) {
-      expect([each.id, each.track.target]).not.toStrictEqual([each.id, 'costPerPrompt']);
+      expect([each.id, each.track?.target]).not.toStrictEqual([each.id, 'costPerPrompt']);
     }
   });
 
@@ -262,12 +262,13 @@ describe('session flags', () => {
       '10 extra reads',
       '20 failures',
       '30 of 100 commands start with cd',
+      '',
     ]);
   });
 
   it('ranks sessions by how badly each shows the problem', () => {
     expect(RULES.map((item) => item.metric(NOISY))).toStrictEqual([
-      0, 0, 0, 0, 10, 600_000, 1.5, 3, 3, 10, 40, 10, 10, 20, 30,
+      0, 0, 0, 0, 10, 600_000, 1.5, 3, 3, 10, 40, 10, 10, 20, 30, 0,
     ]);
   });
 
@@ -304,5 +305,33 @@ describe('tipsTakenBy and isTipId', () => {
     ]);
     expect(isTipId('rereads')).toBe(true);
     expect(isTipId('nope')).toBe(false);
+  });
+});
+
+describe('transcript-cleanup', () => {
+  const DAY = 24 * 60 * 60_000;
+  const NOW = 100 * DAY;
+  const OLD = measureOf({ updatedAt: NOW - 29 * DAY });
+
+  function cleanup(measures: readonly SessionMeasure[], setting: unknown): string | null {
+    return rule('transcript-cleanup').finding(totalsOf(measures, HOME), {
+      knob: (key) => (key === 'cleanupPeriodDays' ? setting : undefined),
+      now: NOW,
+    });
+  }
+
+  it('shows once the default cleanup has started deleting sessions', () => {
+    expect(cleanup([OLD, measureOf({ updatedAt: NOW })], undefined)).toBe(
+      'Claude Code deletes a transcript once it goes unused for 30 days (the default), so the oldest session left is from 1970-03-13. /tune keeps what it measured for a year, but a session it never scanned before then is gone for good.',
+    );
+    expect(cleanup([measureOf({ updatedAt: NOW - 13 * DAY })], 14)).toContain(
+      '14 days (cleanupPeriodDays is 14)',
+    );
+  });
+
+  it('stays quiet when transcripts are kept long enough or none are old yet', () => {
+    expect(cleanup([OLD], 90)).toBeNull();
+    expect(cleanup([measureOf({ updatedAt: NOW - 10 * DAY })], undefined)).toBeNull();
+    expect(cleanup([], undefined)).toBeNull();
   });
 });
