@@ -14,6 +14,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "validate": "node scripts/validate.mjs",
     "check": "npm run -s typecheck && npm test && npm run -s build && git diff --exit-code -- dist",
     "tune": "node dist/tune.cjs"
   },

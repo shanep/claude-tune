@@ -61,7 +61,13 @@ npm install
 npm run typecheck
 npm test
 npm run build
+npm run validate
 ```
+
+`npm run validate` runs `claude plugin validate` and fails on anything it
+reports except the missing version. The manifest has no version on purpose,
+so Claude Code uses the commit SHA and every push to master ships. The
+pre-commit hook runs it before `npm run check`.
 
 `dist/tune.cjs` is committed because a plugin install does not run a build
 step. Rebuild and commit it with any change under `src/`.
