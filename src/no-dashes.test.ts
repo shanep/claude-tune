@@ -4,15 +4,15 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const SKIP = new Set(['node_modules', '.git']);
+const SKIP = new Set(['node_modules', '.git', path.join('.claude', 'worktrees')]);
 const LONG_DASH = /[\u2013\u2014]/u;
 
 function files(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (SKIP.has(entry.name)) {
+    const full = path.join(dir, entry.name);
+    if (SKIP.has(entry.name) || SKIP.has(path.relative(ROOT, full))) {
       return [];
     }
-    const full = path.join(dir, entry.name);
     return entry.isDirectory() ? files(full) : [full];
   });
 }
