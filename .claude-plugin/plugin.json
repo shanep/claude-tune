@@ -1,7 +1,10 @@
 {
   "name": "tune",
   "description": "Find where your Claude Code sessions spend tokens, from your own transcripts, and apply the fixes.",
-  "author": { "name": "Shane Panter" },
+  "author": {
+    "name": "Shane K. Panter",
+    "email": "shanepanter@boisestate.edu"
+  },
   "homepage": "https://github.com/shanep/claude-tune",
   "repository": "https://github.com/shanep/claude-tune",
   "license": "MIT",
