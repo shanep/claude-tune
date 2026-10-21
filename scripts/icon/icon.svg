@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Source for .claude-plugin/icon.png. Rerender with scripts/icon/render.sh.
+       A gauge whose needle is a tuning fork, over a row of level bars. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1f4d"/>
+      <stop offset="1" stop-color="#0e0b1d"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="512" cy="560" r="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6a4be0" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#6a4be0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="heat" x1="142" y1="0" x2="882" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8b6bff"/>
+      <stop offset="0.5" stop-color="#ff6f61"/>
+      <stop offset="1" stop-color="#ffc145"/>
+    </linearGradient>
+    <!-- The gauge circles are rotated 150 degrees, and the gradient turns with
+         them, so the stops run backwards to put amber at the needle. -->
+    <linearGradient id="dial" x1="142" y1="0" x2="882" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffc145"/>
+      <stop offset="0.5" stop-color="#ff6f61"/>
+      <stop offset="1" stop-color="#8b6bff"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9ccdb"/>
+      <stop offset="0.45" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9bdd0"/>
+    </linearGradient>
+    <radialGradient id="cap" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#3b2f66"/>
+      <stop offset="1" stop-color="#140f2a"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="10" result="blur"/>
+      <feFlood flood-color="#05030d" flood-opacity="0.6"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <line id="minor" x1="512" y1="258" x2="512" y2="280" stroke="#ffffff" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round"/>
+    <line id="major" x1="512" y1="250" x2="512" y2="292" stroke="#ffffff" stroke-opacity="0.75" stroke-width="10" stroke-linecap="round"/>
+  </defs>
+
+  <!-- Tile, with a light rim so it keeps its edge on dark backgrounds. -->
+  <rect width="1024" height="1024" rx="224" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#halo)"/>
+  <rect x="3" y="3" width="1018" height="1018" rx="221" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="6"/>
+
+  <!-- Gauge: a dim 240 degree track, the lit part up to the needle, and ticks.
+       Pivot at (512, 590), radius 370, circumference 2324.78. -->
+  <circle cx="512" cy="590" r="370" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="44"
+          stroke-linecap="round" stroke-dasharray="1549.85 2324.78" transform="rotate(150 512 590)"/>
+  <circle cx="512" cy="590" r="370" fill="none" stroke="url(#dial)" stroke-width="44" opacity="0.7" filter="url(#glow)"
+          stroke-linecap="round" stroke-dasharray="955.74 2324.78" transform="rotate(150 512 590)"/>
+  <circle cx="512" cy="590" r="370" fill="none" stroke="url(#dial)" stroke-width="44"
+          stroke-linecap="round" stroke-dasharray="955.74 2324.78" transform="rotate(150 512 590)"/>
+
+  <g>
+    <use xlink:href="#major" transform="rotate(-120 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-105 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-90 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-75 512 590)"/>
+    <use xlink:href="#major" transform="rotate(-60 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-45 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-30 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-15 512 590)"/>
+    <use xlink:href="#major"/>
+    <use xlink:href="#minor" transform="rotate(15 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(30 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(45 512 590)"/>
+    <use xlink:href="#major" transform="rotate(60 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(75 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(90 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(105 512 590)"/>
+    <use xlink:href="#major" transform="rotate(120 512 590)"/>
+  </g>
+
+  <!-- Needle: a tuning fork, ringing. Drawn pointing up from the pivot. -->
+  <g transform="translate(512 590) rotate(28) scale(0.86)">
+    <g fill="none" stroke-linecap="round" stroke-width="14">
+      <path d="M 98.7 -285.9 A 105 105 0 0 1 98.7 -214.1" stroke="#ffc145"/>
+      <path d="M 131.6 -297.9 A 140 140 0 0 1 131.6 -202.1" stroke="#ffc145" stroke-opacity="0.5"/>
+      <path d="M -98.7 -285.9 A 105 105 0 0 0 -98.7 -214.1" stroke="#ff6f61"/>
+      <path d="M -131.6 -297.9 A 140 140 0 0 0 -131.6 -202.1" stroke="#ff6f61" stroke-opacity="0.5"/>
+    </g>
+    <g filter="url(#shadow)" fill="url(#steel)">
+      <rect x="-18" y="-140" width="36" height="210" rx="18"/>
+      <path d="M -62 -300 L -62 -190 A 62 62 0 0 0 62 -190 L 62 -300 A 16 16 0 0 0 30 -300
+               L 30 -190 A 30 30 0 0 1 -30 -190 L -30 -300 A 16 16 0 0 0 -62 -300 Z"/>
+    </g>
+  </g>
+
+  <!-- Pivot cap. -->
+  <circle cx="512" cy="590" r="54" fill="url(#cap)" stroke="url(#heat)" stroke-width="10"/>
+  <circle cx="512" cy="590" r="16" fill="#ffffff"/>
+
+  <!-- Level bars, a token waveform. -->
+  <g fill="url(#heat)">
+    <rect x="343" y="862" width="18" height="16" rx="9"/>
+    <rect x="375" y="856" width="18" height="28" rx="9"/>
+    <rect x="407" y="848" width="18" height="44" rx="9"/>
+    <rect x="439" y="838" width="18" height="64" rx="9"/>
+    <rect x="471" y="828" width="18" height="84" rx="9"/>
+    <rect x="503" y="822" width="18" height="96" rx="9"/>
+    <rect x="535" y="828" width="18" height="84" rx="9"/>
+    <rect x="567" y="838" width="18" height="64" rx="9"/>
+    <rect x="599" y="848" width="18" height="44" rx="9"/>
+    <rect x="631" y="856" width="18" height="28" rx="9"/>
+    <rect x="663" y="862" width="18" height="16" rx="9"/>
+  </g>
+</svg>
