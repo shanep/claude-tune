@@ -67,6 +67,7 @@ async function makeHome(settings: unknown = {}): Promise<Home> {
     platform: 'linux',
     now: () => NOW,
     git: () => null,
+    pluginRoot: root,
     helpFile: path.join(root, 'help.html'),
     open: () => Promise.resolve(),
   };
@@ -223,3 +224,24 @@ describe('tune help', () => {
     await expect(run(['help', '--open'], env)).rejects.toThrow('Run npm run build');
   });
 });
+
+describe('tune install', () => {
+  it('writes the tune command and says when PATH will not find it', async () => {
+    const { root, env } = await makeHome();
+    const bin = path.join(root, 'bin');
+    expect(await run(['install', bin], env)).toBe(
+      `Installed ${path.join(bin, 'tune')}. Run tune help --open from any folder.\n` +
+        `${bin} is not on your PATH. Add it in your shell profile.\n`,
+    );
+    const onPath: Env = { ...env, env: { PATH: bin } };
+    expect(await run(['install', bin], onPath)).toBe(
+      `Installed ${path.join(bin, 'tune')}. Run tune help --open from any folder.\n`,
+    );
+  });
+
+  it('puts the command in ~/.local/bin by default', async () => {
+    const { root, env } = await makeHome();
+    expect(await run(['install'], env)).toContain(`Installed ${path.join(root, '.local', 'bin', 'tune')}.`);
+  });
+});
+

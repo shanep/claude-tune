@@ -1,4 +1,4 @@
-// The entry point the /tune skill runs: node dist/tune.cjs <command>.
+// The entry point the /tune skill and the tune command run.
 
 import { execFile } from 'node:child_process';
 import os from 'node:os';
@@ -24,6 +24,10 @@ function openFile(file: string): Promise<void> {
   });
 }
 
+// The bundle is dist/tune.cjs. Use its own folder, not argv[1], since the
+// command tune install writes loads it with require.
+const pluginRoot = path.resolve(__dirname, '..');
+
 function envNow(): Env {
   return {
     paths: pathsFor(process.env, os.homedir()),
@@ -32,8 +36,8 @@ function envNow(): Env {
     platform: process.platform,
     now: () => Date.now(),
     git: runGit,
-    // The build writes help.html next to tune.cjs.
-    helpFile: path.join(path.dirname(path.resolve(process.argv[1] ?? '.')), 'help.html'),
+    pluginRoot,
+    helpFile: path.join(pluginRoot, 'dist', 'help.html'),
     open: openFile,
   };
 }

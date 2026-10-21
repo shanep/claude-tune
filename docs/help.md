@@ -5,11 +5,9 @@ and offers fixes. Everything runs locally with node. Nothing gets sent
 anywhere.
 
 This page covers what tune reads, how to read the report, every tip and fix,
-how tracking works and where tune keeps its files. Open it any time with:
-
-```bash
-node dist/tune.cjs help --open
-```
+how tracking works and where tune keeps its files. Open it any time with
+`/tune help --open` in a Claude Code session, or `tune help --open` in a
+terminal once you run `/tune install` (see [Command line](#command-line)).
 
 ## Quick start
 
@@ -328,24 +326,30 @@ so you can still see how it went. Stop tracking it with
 
 ## Command line
 
-The skill runs `dist/tune.cjs` with node, and you can run it yourself from
-the plugin folder:
+To run tune in a terminal, from any folder, run this once in a Claude Code
+session:
+
+```text
+/tune install
+```
+
+It writes a `tune` command into `~/.local/bin`. That command finds the
+installed plugin each time it runs, so it keeps working when the plugin
+updates. If `~/.local/bin` is not on your PATH, it says so. Pass a folder to
+put the command somewhere else, like `/tune install ~/bin`. Then:
 
 ```bash
-node dist/tune.cjs report                 # Markdown report
-node dist/tune.cjs report --json          # everything, as JSON
-node dist/tune.cjs fix <fix-id> --dry-run # what a fix would do
-node dist/tune.cjs fix <fix-id>           # apply a fix
-node dist/tune.cjs track <tip-id> [--off] # start or stop tracking a tip
-node dist/tune.cjs help                   # the commands
-node dist/tune.cjs help --open            # this page, in your browser
+tune report                 # Markdown report
+tune report --json          # everything, as JSON
+tune fix <fix-id> --dry-run # what a fix would do
+tune fix <fix-id>           # apply a fix
+tune track <tip-id> [--off] # start or stop tracking a tip
+tune help                   # the commands
+tune help --open            # this page, in your browser
 ```
 
 With no command, it runs `report`. You can also pass any of these to the
-skill, like `/tune fix knob:autoCompactWindow`.
-
-The installed plugin lives under `~/.claude/plugins`. In a Claude Code
-session, `${CLAUDE_PLUGIN_ROOT}` points at it.
+skill, like `/tune fix knob:autoCompactWindow`, without installing anything.
 
 ## Files and settings
 
@@ -390,6 +394,10 @@ the same value.
 **A fix says it is not on offer.** Fixes only show while their tip applies.
 Run `report` to see the current list. Skills and agents can always be created
 with `fix create:<id>`.
+
+**`tune: command not found`.** Run `/tune install` in a session first. If it
+said `~/.local/bin` is not on your PATH, add it in your shell profile, like
+`export PATH="$HOME/.local/bin:$PATH"` in `~/.zshrc` or `~/.bashrc`.
 
 **`help --open` did not open anything.** It uses `open` on macOS and
 `xdg-open` on Linux. Without a desktop, like over ssh, open the path it

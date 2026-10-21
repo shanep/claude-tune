@@ -16,6 +16,7 @@ import { summarize } from '../core/tuning/summarize.js';
 import { loadTracked, saveTracked } from '../core/tuning/tracked.js';
 import type { AutoFix, TuningState } from '../shared/tuning.js';
 
+import { installShim, pathProblem } from './install.js';
 import { installedSuggestions, librariesFor, suggestionFile } from './installed.js';
 import type { Paths } from './paths.js';
 import type { GitRunner } from './projects.js';
@@ -31,6 +32,8 @@ export interface Env {
   readonly platform: NodeJS.Platform;
   readonly now: () => number;
   readonly git: GitRunner;
+  /** The plugin folder this bundle runs from. */
+  readonly pluginRoot: string;
   /** The built help page, dist/help.html beside the bundle. */
   readonly helpFile: string;
   /** Opens a file in the app the system picks for it, a browser for HTML. */
@@ -256,4 +259,21 @@ export async function help(env: Env): Promise<string> {
     return `Could not open a browser. The help page is at ${env.helpFile}.\n`;
   }
   return `Opened ${env.helpFile}.\n`;
+}
+
+/** Writes the tune command into dir, ~/.local/bin by default, and checks that PATH finds it. */
+export async function install(env: Env, dir: string | undefined): Promise<string> {
+  const folder = dir ?? path.join(env.paths.home, '.local', 'bin');
+  const file = await installShim(folder, env.pluginRoot);
+  const problem = await pathProblem(file, env.env['PATH']);
+  const lines = [`Installed ${file}. Run tune help --open from any folder.`];
+  if (problem?.kind === 'not-on-path') {
+    lines.push(`${problem.dir} is not on your PATH. Add it in your shell profile.`);
+  } else if (problem?.kind === 'shadowed') {
+    lines.push(
+      `${problem.by} runs instead, since it comes first on your PATH.`,
+      `Put ${folder} ahead of it in your shell profile, or remove it.`,
+    );
+  }
+  return `${lines.join('\n')}\n`;
 }

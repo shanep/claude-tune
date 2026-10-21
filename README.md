@@ -43,21 +43,24 @@ compares the sessions before and after.
 
 ## Command line
 
-The skill runs `dist/tune.cjs`, and you can run it yourself:
+To run tune in a terminal from any folder, run `/tune install` once in a
+session. It writes a `tune` command into `~/.local/bin` that finds the
+installed plugin each time it runs, so it keeps working after updates. Then:
 
 ```bash
-node dist/tune.cjs report           # Markdown report
-node dist/tune.cjs report --json    # everything, as JSON
-node dist/tune.cjs fix <fix-id> --dry-run
-node dist/tune.cjs fix <fix-id>
-node dist/tune.cjs track <tip-id> [--off]
-node dist/tune.cjs help --open      # the full guide, in your browser
+tune report           # Markdown report
+tune report --json    # everything, as JSON
+tune fix <fix-id> --dry-run
+tune fix <fix-id>
+tune track <tip-id> [--off]
+tune help --open      # the full guide, in your browser
 ```
 
 The full guide is [docs/help.md](docs/help.md). It covers every tip and fix,
 how tracking works and where tune keeps its files. The build turns it into
 `dist/help.html`, which `help --open` opens with `open` on macOS or
-`xdg-open` on Linux.
+`xdg-open` on Linux. In a session, `/tune help --open` does the same without
+installing anything.
 
 The index of scanned sessions and the tracked tips live in
 `${XDG_STATE_HOME:-~/.local/state}/claude-tune`. Set `CLAUDE_TUNE_STATE_DIR`

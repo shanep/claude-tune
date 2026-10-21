@@ -2,7 +2,7 @@
 name: tune
 description: Show where your Claude Code sessions spend tokens, from the transcripts in ~/.claude/projects, and apply the fixes you pick.
 disable-model-invocation: true
-argument-hint: "[report | fix <fix-id> | track <tip-id> [--off] | help [--open]]"
+argument-hint: "[report | fix <fix-id> | track <tip-id> [--off] | help [--open] | install [dir]]"
 allowed-tools: Bash(node:*)
 ---
 
@@ -19,7 +19,8 @@ Arguments: $ARGUMENTS
 
 If arguments were given, run the command with them and show the output. If
 not, follow the steps below. When I ask how tune works or for its docs, run
-`help --open`, which opens the full guide in my browser.
+`help --open`, which opens the full guide in my browser. When I want tune in
+my terminal, run `install`, which puts a `tune` command in ~/.local/bin.
 
 ## 1. Report
 

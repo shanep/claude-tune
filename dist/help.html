@@ -108,9 +108,9 @@ th {
 and offers fixes. Everything runs locally with node. Nothing gets sent
 anywhere.</p>
 <p>This page covers what tune reads, how to read the report, every tip and fix,
-how tracking works and where tune keeps its files. Open it any time with:</p>
-<pre><code class="language-bash">node dist/tune.cjs help --open
-</code></pre>
+how tracking works and where tune keeps its files. Open it any time with
+<code>/tune help --open</code> in a Claude Code session, or <code>tune help --open</code> in a
+terminal once you run <code>/tune install</code> (see <a href="#command-line">Command line</a>).</p>
 <h2 id="quick-start">Quick start</h2>
 <ol>
 <li>Run <code>/tune:tune</code> in a Claude Code session (or <code>/tune</code> if nothing else uses
@@ -465,20 +465,24 @@ were already running when tracking started are left out. It compares:</p>
 so you can still see how it went. Stop tracking it with
 <code>tune track &lt;tip-id&gt; --off</code>.</p>
 <h2 id="command-line">Command line</h2>
-<p>The skill runs <code>dist/tune.cjs</code> with node, and you can run it yourself from
-the plugin folder:</p>
-<pre><code class="language-bash">node dist/tune.cjs report                 # Markdown report
-node dist/tune.cjs report --json          # everything, as JSON
-node dist/tune.cjs fix &lt;fix-id&gt; --dry-run # what a fix would do
-node dist/tune.cjs fix &lt;fix-id&gt;           # apply a fix
-node dist/tune.cjs track &lt;tip-id&gt; [--off] # start or stop tracking a tip
-node dist/tune.cjs help                   # the commands
-node dist/tune.cjs help --open            # this page, in your browser
+<p>To run tune in a terminal, from any folder, run this once in a Claude Code
+session:</p>
+<pre><code class="language-text">/tune install
+</code></pre>
+<p>It writes a <code>tune</code> command into <code>~/.local/bin</code>. That command finds the
+installed plugin each time it runs, so it keeps working when the plugin
+updates. If <code>~/.local/bin</code> is not on your PATH, it says so. Pass a folder to
+put the command somewhere else, like <code>/tune install ~/bin</code>. Then:</p>
+<pre><code class="language-bash">tune report                 # Markdown report
+tune report --json          # everything, as JSON
+tune fix &lt;fix-id&gt; --dry-run # what a fix would do
+tune fix &lt;fix-id&gt;           # apply a fix
+tune track &lt;tip-id&gt; [--off] # start or stop tracking a tip
+tune help                   # the commands
+tune help --open            # this page, in your browser
 </code></pre>
 <p>With no command, it runs <code>report</code>. You can also pass any of these to the
-skill, like <code>/tune fix knob:autoCompactWindow</code>.</p>
-<p>The installed plugin lives under <code>~/.claude/plugins</code>. In a Claude Code
-session, <code>${CLAUDE_PLUGIN_ROOT}</code> points at it.</p>
+skill, like <code>/tune fix knob:autoCompactWindow</code>, without installing anything.</p>
 <h2 id="files-and-settings">Files and settings</h2>
 <p>tune keeps its own files outside the plugin folder, since a plugin update
 replaces that folder:</p>
@@ -542,6 +546,9 @@ the same value.</p>
 <p><strong>A fix says it is not on offer.</strong> Fixes only show while their tip applies.
 Run <code>report</code> to see the current list. Skills and agents can always be created
 with <code>fix create:&lt;id&gt;</code>.</p>
+<p><strong><code>tune: command not found</code>.</strong> Run <code>/tune install</code> in a session first. If it
+said <code>~/.local/bin</code> is not on your PATH, add it in your shell profile, like
+<code>export PATH=&quot;$HOME/.local/bin:$PATH&quot;</code> in <code>~/.zshrc</code> or <code>~/.bashrc</code>.</p>
 <p><strong><code>help --open</code> did not open anything.</strong> It uses <code>open</code> on macOS and
 <code>xdg-open</code> on Linux. Without a desktop, like over ssh, open the path it
 prints yourself.</p>

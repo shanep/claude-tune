@@ -30,7 +30,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // src/cli/main.ts
 var import_node_child_process2 = require("node:child_process");
 var import_node_os = __toESM(require("node:os"), 1);
-var import_node_path11 = __toESM(require("node:path"), 1);
+var import_node_path12 = __toESM(require("node:path"), 1);
 var import_node_process = __toESM(require("node:process"), 1);
 
 // src/cli/paths.ts
@@ -101,8 +101,8 @@ function projectRoot(cwd, git = runGit) {
 }
 
 // src/cli/app.ts
-var import_promises7 = require("node:fs/promises");
-var import_node_path10 = __toESM(require("node:path"), 1);
+var import_promises8 = require("node:fs/promises");
+var import_node_path11 = __toESM(require("node:path"), 1);
 
 // src/core/authoring/render.ts
 var AGENT_FIELDS = ["name", "description", "tools", "model", "color"];
@@ -495,10 +495,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path12) {
-  if (!path12)
+function getElementAtPath(obj, path13) {
+  if (!path13)
     return obj;
-  return path12.reduce((acc, key) => acc?.[key], obj);
+  return path13.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -838,11 +838,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path12, issues) {
+function prefixIssues(path13, issues) {
   return issues.map((iss) => {
     var _a2;
     (_a2 = iss).path ?? (_a2.path = []);
-    iss.path.unshift(path12);
+    iss.path.unshift(path13);
     return iss;
   });
 }
@@ -5443,11 +5443,11 @@ function knobReader(effective) {
 }
 function modifiedCheck() {
   const known = /* @__PURE__ */ new Map();
-  return (path12) => {
-    let found = known.get(path12);
+  return (path13) => {
+    let found = known.get(path13);
     if (found === void 0) {
-      found = (0, import_node_fs2.statSync)(path12, { throwIfNoEntry: false })?.mtimeMs ?? null;
-      known.set(path12, found);
+      found = (0, import_node_fs2.statSync)(path13, { throwIfNoEntry: false })?.mtimeMs ?? null;
+      known.set(path13, found);
     }
     return found;
   };
@@ -6269,12 +6269,100 @@ async function saveTracked(file, tracked) {
   });
 }
 
+// src/cli/install.ts
+var import_promises6 = require("node:fs/promises");
+var import_node_path8 = __toESM(require("node:path"), 1);
+var PLUGIN_ID = "tune@shanep";
+function shimScript(fallbackRoot) {
+  return `#!/usr/bin/env node
+// Written by \`tune install\`. It finds the installed tune plugin on each run,
+// so it keeps working when the plugin updates.
+const [major, minor] = process.versions.node.split('.').map(Number);
+if (major < 22 || (major === 22 && minor < 3)) {
+  process.stderr.write(
+    'tune: it needs Node 22.3 or newer, and \`node\` here is ' + process.version + '.\\n' +
+      'Put a newer node first on your PATH.\\n',
+  );
+  process.exit(1);
+}
+
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const claudeDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+const fallback = ${JSON.stringify(fallbackRoot)};
+
+function bundleIn(root) {
+  const file = path.join(root, 'dist', 'tune.cjs');
+  return fs.existsSync(file) ? file : null;
+}
+
+function installed() {
+  try {
+    const list = JSON.parse(
+      fs.readFileSync(path.join(claudeDir, 'plugins', 'installed_plugins.json'), 'utf8'),
+    );
+    for (const entry of list.plugins[${JSON.stringify(PLUGIN_ID)}] || []) {
+      const file = bundleIn(entry.installPath);
+      if (file !== null) {
+        return file;
+      }
+    }
+  } catch {
+    // No list, or not one this script understands, so use the fallback.
+  }
+  return null;
+}
+
+const bundle = installed() || bundleIn(fallback);
+if (bundle === null) {
+  process.stderr.write(
+    'tune: the tune plugin is not installed. Run: claude plugin install ${PLUGIN_ID}\\n',
+  );
+  process.exit(1);
+}
+require(bundle);
+`;
+}
+async function installShim(dir, fallbackRoot) {
+  await (0, import_promises6.mkdir)(dir, { recursive: true });
+  const file = import_node_path8.default.join(dir, "tune");
+  await (0, import_promises6.writeFile)(file, shimScript(fallbackRoot));
+  await (0, import_promises6.chmod)(file, 493);
+  return file;
+}
+async function isCommand(file) {
+  try {
+    await (0, import_promises6.access)(file, import_promises6.constants.X_OK);
+    return (await (0, import_promises6.stat)(file)).isFile();
+  } catch {
+    return false;
+  }
+}
+async function pathProblem(file, pathValue) {
+  const dir = import_node_path8.default.resolve(import_node_path8.default.dirname(file));
+  for (const entry of (pathValue ?? "").split(import_node_path8.default.delimiter)) {
+    if (entry === "") {
+      continue;
+    }
+    if (import_node_path8.default.resolve(entry) === dir) {
+      return null;
+    }
+    const other = import_node_path8.default.join(import_node_path8.default.resolve(entry), import_node_path8.default.basename(file));
+    if (await isCommand(other)) {
+      return { kind: "shadowed", by: other };
+    }
+  }
+  return { kind: "not-on-path", dir };
+}
+
 // src/cli/installed.ts
 var import_node_fs3 = require("node:fs");
-var import_node_path8 = __toESM(require("node:path"), 1);
+var import_node_path9 = __toESM(require("node:path"), 1);
 function suggestionFile(dirs, definition) {
   const name = nameOf(definition);
-  return definition.kind === "skill" ? import_node_path8.default.join(dirs.skillsDir, name, "SKILL.md") : import_node_path8.default.join(dirs.agentsDir, `${name}.md`);
+  return definition.kind === "skill" ? import_node_path9.default.join(dirs.skillsDir, name, "SKILL.md") : import_node_path9.default.join(dirs.agentsDir, `${name}.md`);
 }
 function installedSuggestions(libraries, exists = import_node_fs3.existsSync) {
   const installed = /* @__PURE__ */ new Set();
@@ -6289,8 +6377,8 @@ function librariesFor(user, projectRoot2) {
   return projectRoot2 === null ? [user] : [
     user,
     {
-      skillsDir: import_node_path8.default.join(projectRoot2, ".claude", "skills"),
-      agentsDir: import_node_path8.default.join(projectRoot2, ".claude", "agents")
+      skillsDir: import_node_path9.default.join(projectRoot2, ".claude", "skills"),
+      agentsDir: import_node_path9.default.join(projectRoot2, ".claude", "agents")
     }
   ];
 }
@@ -6450,8 +6538,8 @@ function renderReport(state, options) {
 }
 
 // src/cli/settings.ts
-var import_promises6 = require("node:fs/promises");
-var import_node_path9 = __toESM(require("node:path"), 1);
+var import_promises7 = require("node:fs/promises");
+var import_node_path10 = __toESM(require("node:path"), 1);
 function managedSettingsFile(platform) {
   return platform === "darwin" ? "/Library/Application Support/ClaudeCode/managed-settings.json" : "/etc/claude-code/managed-settings.json";
 }
@@ -6459,9 +6547,9 @@ function settingsFiles(input) {
   const project = input.projectRoot === null ? [] : [
     {
       layer: "project-local",
-      file: import_node_path9.default.join(input.projectRoot, ".claude", "settings.local.json")
+      file: import_node_path10.default.join(input.projectRoot, ".claude", "settings.local.json")
     },
-    { layer: "project", file: import_node_path9.default.join(input.projectRoot, ".claude", "settings.json") }
+    { layer: "project", file: import_node_path10.default.join(input.projectRoot, ".claude", "settings.json") }
   ];
   return [
     { layer: "managed", file: managedSettingsFile(input.platform) },
@@ -6559,10 +6647,10 @@ async function writeSetting(write) {
   const indent = text === null ? "  " : indentOf(text);
   let backup = null;
   if (text !== null) {
-    await (0, import_promises6.mkdir)(write.backupDir, { recursive: true });
-    backup = import_node_path9.default.join(
+    await (0, import_promises7.mkdir)(write.backupDir, { recursive: true });
+    backup = import_node_path10.default.join(
       write.backupDir,
-      `${import_node_path9.default.basename(target)}.${new Date(write.now).toISOString().replaceAll(":", "-")}.bak`
+      `${import_node_path10.default.basename(target)}.${new Date(write.now).toISOString().replaceAll(":", "-")}.bak`
     );
   }
   await writeFileAtomic({ target, content: `${JSON.stringify(next, null, indent)}
@@ -6667,9 +6755,9 @@ async function applyCreate(env, loaded, suggestionId, dryRun) {
     return [`Would write ${label} to ${file}.`];
   }
   const text = definition.kind === "agent" ? renderAgent(definition.spec) : renderSkill(definition.spec);
-  await (0, import_promises7.mkdir)(import_node_path10.default.dirname(file), { recursive: true });
+  await (0, import_promises8.mkdir)(import_node_path11.default.dirname(file), { recursive: true });
   try {
-    await (0, import_promises7.writeFile)(file, text, { flag: "wx" });
+    await (0, import_promises8.writeFile)(file, text, { flag: "wx" });
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "EEXIST") {
       return [`${file} is already there, so /tune left it alone.`];
@@ -6738,7 +6826,7 @@ async function track(env, tipId, on) {
 }
 async function help(env) {
   try {
-    await (0, import_promises7.access)(env.helpFile);
+    await (0, import_promises8.access)(env.helpFile);
   } catch {
     throw new Error(`${env.helpFile} is missing. Run npm run build to make it.`);
   }
@@ -6751,6 +6839,22 @@ async function help(env) {
   return `Opened ${env.helpFile}.
 `;
 }
+async function install(env, dir) {
+  const folder = dir ?? import_node_path11.default.join(env.paths.home, ".local", "bin");
+  const file = await installShim(folder, env.pluginRoot);
+  const problem = await pathProblem(file, env.env["PATH"]);
+  const lines = [`Installed ${file}. Run tune help --open from any folder.`];
+  if (problem?.kind === "not-on-path") {
+    lines.push(`${problem.dir} is not on your PATH. Add it in your shell profile.`);
+  } else if (problem?.kind === "shadowed") {
+    lines.push(
+      `${problem.by} runs instead, since it comes first on your PATH.`,
+      `Put ${folder} ahead of it in your shell profile, or remove it.`
+    );
+  }
+  return `${lines.join("\n")}
+`;
+}
 
 // src/cli/run.ts
 var USAGE = `Usage: tune <command>
@@ -6761,6 +6865,8 @@ var USAGE = `Usage: tune <command>
                            for a launch fix. Tracks the tips it follows.
   track <tip-id> [--off]   Start or stop tracking a tip by hand.
   help [--open]            Show this, or open the full guide in your browser.
+  install [dir]            Put a tune command in ~/.local/bin (or dir), so
+                           tune runs from any folder.
 `;
 async function run(argv, env) {
   const flags = new Set(argv.filter((arg) => arg.startsWith("--")));
@@ -6786,6 +6892,9 @@ async function run(argv, env) {
 Run tune help --open for the full guide.
 `;
     }
+    case "install": {
+      return install(env, target);
+    }
     default: {
       throw new Error(`Unknown command ${command}.
 
@@ -6807,6 +6916,7 @@ function openFile(file) {
     });
   });
 }
+var pluginRoot = import_node_path12.default.resolve(__dirname, "..");
 function envNow() {
   return {
     paths: pathsFor(import_node_process.default.env, import_node_os.default.homedir()),
@@ -6815,8 +6925,8 @@ function envNow() {
     platform: import_node_process.default.platform,
     now: () => Date.now(),
     git: runGit,
-    // The build writes help.html next to tune.cjs.
-    helpFile: import_node_path11.default.join(import_node_path11.default.dirname(import_node_path11.default.resolve(import_node_process.default.argv[1] ?? ".")), "help.html"),
+    pluginRoot,
+    helpFile: import_node_path12.default.join(pluginRoot, "dist", "help.html"),
     open: openFile
   };
 }
