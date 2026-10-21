@@ -7,8 +7,8 @@ runs locally with node. Nothing gets sent anywhere.
 ## Install
 
 ```bash
-claude plugin marketplace add shanep/claude-tune
-claude plugin install tune@claude-tune
+claude plugin marketplace add shanep/claude-plugins
+claude plugin install tune@shanep
 ```
 
 You need node 22.3 or later on your PATH. It works on macOS and Linux.
