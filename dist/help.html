@@ -3,115 +3,1084 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>tune help</title>
+<script>
+try { const theme = localStorage.getItem('tune-theme'); if (theme) document.documentElement.dataset.theme = theme; } catch {}
+document.documentElement.classList.add('js');
+</script>
 <style>
+/* The help page, in the colors of the plugin icon: a deep violet night and a
+   heat gradient that runs violet, coral, amber. */
+
 :root {
-  color-scheme: light dark;
-  --text: #1f2328;
-  --muted: #59636e;
-  --background: #ffffff;
-  --panel: #f6f8fa;
-  --border: #d1d9e0;
-  --link: #0969da;
+  --heat: linear-gradient(90deg, #8b6bff, #ff6f61 55%, #ffc145);
+  --violet: #6a4be0;
+  --coral: #d9493c;
+  --amber: #a86f00;
+  --high: #e5483b;
+  --medium: #c98a00;
+  --low: #7457f0;
+  --text: #1b1530;
+  --muted: #5d5680;
+  --background: #faf9ff;
+  --surface: #ffffff;
+  --surface-2: #f3f0ff;
+  --border: #e3defa;
+  --shadow: 0 1px 2px rgb(40 20 90 / 6%), 0 8px 24px rgb(40 20 90 / 8%);
+  --code-bg: #15112a;
+  --code-text: #ebe8ff;
+  --radius: 14px;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+}
+
+/* Dark, by choice or by system setting. The two blocks hold the same values. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --violet: #a48bff;
+  --coral: #ff8a7f;
+  --amber: #ffc145;
+  --high: #ff6f61;
+  --medium: #ffc145;
+  --low: #9b82ff;
+  --text: #ebe8ff;
+  --muted: #a59fc9;
+  --background: #0b0916;
+  --surface: #14112a;
+  --surface-2: #1c1838;
+  --border: #2c2752;
+  --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 12px 32px rgb(0 0 0 / 35%);
+  --code-bg: #0e0b1d;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e6edf3;
-    --muted: #9198a1;
-    --background: #0d1117;
-    --panel: #151b23;
-    --border: #3d444d;
-    --link: #4493f8;
+  :root:not([data-theme="light"]) {
+    --violet: #a48bff;
+    --coral: #ff8a7f;
+    --amber: #ffc145;
+    --high: #ff6f61;
+    --medium: #ffc145;
+    --low: #9b82ff;
+    --text: #ebe8ff;
+    --muted: #a59fc9;
+    --background: #0b0916;
+    --surface: #14112a;
+    --surface-2: #1c1838;
+    --border: #2c2752;
+    --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 12px 32px rgb(0 0 0 / 35%);
+    --code-bg: #0e0b1d;
   }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 1.5rem;
 }
 
 body {
   margin: 0;
   background: var(--background);
   color: var(--text);
-  font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-}
-
-main {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
-}
-
-h1, h2, h3 {
-  line-height: 1.25;
-  margin: 2rem 0 0.75rem;
-}
-
-h1 {
-  font-size: 2rem;
-  margin-top: 0;
-}
-
-h2 {
-  font-size: 1.5rem;
-  padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--border);
-}
-
-h3 {
-  font-size: 1.15rem;
+  font: 16px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
-  color: var(--link);
+  color: var(--violet);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--coral);
+}
+
+::selection {
+  background: rgb(139 107 255 / 35%);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Scroll progress, in the heat gradient. */
+.progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 10;
+  width: 100%;
+  height: 3px;
+  background: var(--heat);
+  transform: scaleX(var(--scrolled, 0));
+  transform-origin: left;
+}
+
+/* Hero. Always dark, like the icon tile. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  color: #ebe8ff;
+  background: linear-gradient(180deg, #2a1f4d, #0e0b1d);
+  border-bottom: 1px solid #2c2752;
+}
+
+.glow {
+  position: absolute;
+  inset: -40% -10% auto;
+  height: 160%;
+  background:
+    radial-gradient(40rem 22rem at 20% 40%, rgb(106 75 224 / 45%), transparent 70%),
+    radial-gradient(30rem 18rem at 80% 30%, rgb(255 111 97 / 22%), transparent 70%),
+    radial-gradient(26rem 16rem at 60% 90%, rgb(255 193 69 / 14%), transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  to {
+    transform: translate3d(3%, 4%, 0) scale(1.08);
+  }
+}
+
+.hero-inner {
+  position: relative;
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 4.5rem 2rem 4rem;
+}
+
+.logo {
+  flex: none;
+  width: 11rem;
+  filter: drop-shadow(0 0 2.5rem rgb(139 107 255 / 55%));
+  animation: float 6s ease-in-out infinite;
+}
+
+.logo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-8px) rotate(-1.5deg);
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  color: #ffc145;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0.1rem 0 0;
+  font-size: clamp(3.5rem, 9vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: var(--heat);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  margin: 0.75rem 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.lede {
+  max-width: 40rem;
+  color: #c9c3ea;
+}
+
+.lede p {
+  margin: 0 0 0.75rem;
+}
+
+.lede a {
+  color: #ffc145;
+}
+
+.lede code {
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats li {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 6%);
+  color: #c9c3ea;
+  font-size: 0.9rem;
+  backdrop-filter: blur(6px);
+}
+
+.stats b {
+  color: #fff;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pill {
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0.6rem 0.6rem 1.1rem;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  background: rgb(14 11 29 / 55%);
+  color: #ebe8ff;
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.pill:hover {
+  border-color: #ff6f61;
+  box-shadow: 0 0 0 4px rgb(255 111 97 / 15%), 0 0 2rem rgb(255 111 97 / 25%);
+  transform: translateY(-1px);
+}
+
+.pill code {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--heat);
+  color: #1b1530;
+  font-weight: 700;
+}
+
+.pill.copied code::after {
+  content: "  copied";
+}
+
+/* Layout: the contents on the left, the guide on the right. */
+.layout {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  gap: 3rem;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.sidebar-inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 100vh;
+  padding: 2rem 0;
+}
+
+.search {
+  position: relative;
+  display: block;
+}
+
+.search input {
+  width: 100%;
+  padding: 0.55rem 2.2rem 0.55rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.search input:focus {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 4px rgb(139 107 255 / 18%);
+}
+
+.search kbd {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font: 0.75rem var(--mono);
+  transform: translateY(-50%);
+}
+
+nav {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.toc,
+.toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc ul {
+  margin: 0.15rem 0 0.5rem 0.75rem;
+  padding-left: 0.6rem;
+  border-left: 1px solid var(--border);
+}
+
+.toc a {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toc > li > a {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.toc ul a {
+  font-size: 0.85rem;
+}
+
+.toc ul a:has(.dot) {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.toc a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.toc a.active {
+  background: var(--surface-2);
+  color: var(--violet);
+  box-shadow: inset 3px 0 0 var(--violet);
+}
+
+.toc .hidden {
+  display: none;
+}
+
+.dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--low);
+}
+
+.dot.high {
+  background: var(--high);
+  box-shadow: 0 0 0.5rem var(--high);
+}
+
+.dot.medium {
+  background: var(--medium);
+}
+
+.theme {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.theme:hover {
+  color: var(--text);
+  border-color: var(--violet);
+}
+
+.theme-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #ffc145 50%, #2a1f4d 50%);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* The guide. */
+main {
+  min-width: 0;
+  padding: 2rem 0 5rem;
+}
+
+section {
+  margin-bottom: 3.5rem;
+}
+
+h2,
+h3 {
+  position: relative;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  margin: 0 0 1.25rem;
+  padding-top: 1rem;
+  font-size: 1.85rem;
+  font-weight: 750;
+}
+
+h2 .num {
+  font: 600 0.85rem var(--mono);
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  background: var(--heat);
+  color: #1b1530;
+}
+
+h3 {
+  margin: 2rem 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+.anchor {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+:is(h2, h3, .tip header):hover .anchor {
+  opacity: 1;
+}
+
+p,
+ul,
+ol {
+  margin: 0 0 1rem;
+}
+
+li {
+  margin: 0.25rem 0;
+}
+
+strong {
+  font-weight: 650;
 }
 
 code {
-  font: 0.875em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--panel);
-  padding: 0.15em 0.35em;
-  border-radius: 4px;
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--violet);
+  font: 0.85em var(--mono);
+}
+
+/* Tables. */
+.table {
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+th,
+td {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr {
+  transition: background 0.15s;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+td:first-child {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Code blocks, as little terminal windows. */
+.code {
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border: 1px solid #2c2752;
+  border-radius: var(--radius);
+  background: var(--code-bg);
+  box-shadow: var(--shadow);
+}
+
+.code figcaption {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #2c2752;
+  background: #1c1838;
+  color: #a59fc9;
+  font-size: 0.78rem;
+}
+
+.dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dots i {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #ff6f61;
+}
+
+.dots i:nth-child(2) {
+  background: #ffc145;
+}
+
+.dots i:nth-child(3) {
+  background: #8b6bff;
+}
+
+.copy {
+  margin-left: auto;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid #2c2752;
+  border-radius: 999px;
+  background: transparent;
+  color: #ebe8ff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.copy:hover {
+  border-color: #ffc145;
+  color: #ffc145;
+}
+
+.copy.copied {
+  border-color: #8b6bff;
+  background: #8b6bff;
+  color: #fff;
 }
 
 pre {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem;
+  margin: 0;
+  padding: 1rem 1.25rem;
   overflow-x: auto;
 }
 
 pre code {
-  background: none;
   padding: 0;
+  background: none;
+  color: var(--code-text);
+  font-size: 0.88rem;
+  line-height: 1.8;
 }
 
-table {
-  border-collapse: collapse;
-  margin: 1rem 0;
-  width: 100%;
+.shell .line::before {
+  content: "$ ";
+  color: #ff6f61;
+  user-select: none;
 }
 
-th, td {
+.comment {
+  color: #7f78a8;
+}
+
+/* Tips, as cards with their severity on the edge. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.chip {
+  padding: 0.35rem 0.9rem;
   border: 1px solid var(--border);
-  padding: 0.4rem 0.75rem;
-  text-align: left;
-  vertical-align: top;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-th {
-  background: var(--panel);
+.chip b {
+  margin-left: 0.25rem;
+  color: var(--text);
+}
+
+.chip:hover {
+  border-color: var(--violet);
+}
+
+.chip.on {
+  border-color: transparent;
+  background: var(--text);
+  color: var(--background);
+}
+
+.chip.on b {
+  color: var(--background);
+}
+
+.tips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(21rem, 1fr));
+  gap: 1rem;
+}
+
+.tip {
+  --edge: var(--low);
+  position: relative;
+  padding: 1.1rem 1.25rem 0.4rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 0.93rem;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.tip::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--edge);
+  content: "";
+}
+
+.tip.high {
+  --edge: var(--high);
+}
+
+.tip.medium {
+  --edge: var(--medium);
+}
+
+.tip:hover {
+  border-color: var(--edge);
+  transform: translateY(-3px);
+}
+
+.tip:target {
+  border-color: var(--edge);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--edge) 25%, transparent), var(--shadow);
+}
+
+.tip[hidden] {
+  display: none;
+}
+
+.tip header {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.tip header code {
+  padding: 0;
+  background: none;
+  color: var(--text);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.badge {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--low) 15%, transparent);
+  color: var(--low);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge.high {
+  background: color-mix(in srgb, var(--high) 15%, transparent);
+  color: var(--high);
+}
+
+.badge.medium {
+  background: color-mix(in srgb, var(--medium) 18%, transparent);
+  color: var(--medium);
+}
+
+.tip header .anchor {
+  margin-left: auto;
+}
+
+.tip p:first-of-type strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+/* The rest. */
+.end {
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.top {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--heat);
+  color: #1b1530;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgb(255 111 97 / 35%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(1rem);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.top.shown {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+}
+
+.top:hover {
+  color: #1b1530;
+  transform: translateY(-2px);
+}
+
+/* Parts fade in as they scroll into view, only when the script runs. */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(1.5rem);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.js .reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 3rem 1.25rem;
+  }
+
+  .logo {
+    width: 7rem;
+  }
+
+  .layout {
+    display: block;
+    padding: 0 1.25rem;
+  }
+
+  .sidebar-inner {
+    position: static;
+    max-height: none;
+    padding-bottom: 0;
+  }
+
+  .toc ul {
+    display: none;
+  }
+
+  .tips {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .progress,
+  .glow,
+  .sidebar,
+  .top,
+  .filters,
+  .copy,
+  .cta {
+    display: none;
+  }
+
+  .layout {
+    display: block;
+  }
+
+  .js .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }
 </style>
 </head>
 <body>
-<main>
-<h1 id="tune-help">tune help</h1>
-<p>tune reads your Claude Code session transcripts, shows where the tokens went
+<div class="progress" aria-hidden="true"></div>
+<header class="hero">
+<div class="glow" aria-hidden="true"></div>
+<div class="hero-inner">
+<div class="logo"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1f4d"/>
+      <stop offset="1" stop-color="#0e0b1d"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="512" cy="560" r="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6a4be0" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#6a4be0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="heat" x1="142" y1="0" x2="882" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8b6bff"/>
+      <stop offset="0.5" stop-color="#ff6f61"/>
+      <stop offset="1" stop-color="#ffc145"/>
+    </linearGradient>
+    <linearGradient id="dial" x1="142" y1="0" x2="882" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffc145"/>
+      <stop offset="0.5" stop-color="#ff6f61"/>
+      <stop offset="1" stop-color="#8b6bff"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c9ccdb"/>
+      <stop offset="0.45" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#b9bdd0"/>
+    </linearGradient>
+    <radialGradient id="cap" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#3b2f66"/>
+      <stop offset="1" stop-color="#140f2a"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10"/>
+      <feOffset dx="0" dy="10" result="blur"/>
+      <feFlood flood-color="#05030d" flood-opacity="0.6"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <line id="minor" x1="512" y1="258" x2="512" y2="280" stroke="#ffffff" stroke-opacity="0.35" stroke-width="6" stroke-linecap="round"/>
+    <line id="major" x1="512" y1="250" x2="512" y2="292" stroke="#ffffff" stroke-opacity="0.75" stroke-width="10" stroke-linecap="round"/>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#halo)"/>
+  <rect x="3" y="3" width="1018" height="1018" rx="221" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="6"/>
+
+  <circle cx="512" cy="590" r="370" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="44"
+          stroke-linecap="round" stroke-dasharray="1549.85 2324.78" transform="rotate(150 512 590)"/>
+  <circle cx="512" cy="590" r="370" fill="none" stroke="url(#dial)" stroke-width="44" opacity="0.7" filter="url(#glow)"
+          stroke-linecap="round" stroke-dasharray="955.74 2324.78" transform="rotate(150 512 590)"/>
+  <circle cx="512" cy="590" r="370" fill="none" stroke="url(#dial)" stroke-width="44"
+          stroke-linecap="round" stroke-dasharray="955.74 2324.78" transform="rotate(150 512 590)"/>
+
+  <g>
+    <use xlink:href="#major" transform="rotate(-120 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-105 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-90 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-75 512 590)"/>
+    <use xlink:href="#major" transform="rotate(-60 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-45 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-30 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(-15 512 590)"/>
+    <use xlink:href="#major"/>
+    <use xlink:href="#minor" transform="rotate(15 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(30 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(45 512 590)"/>
+    <use xlink:href="#major" transform="rotate(60 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(75 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(90 512 590)"/>
+    <use xlink:href="#minor" transform="rotate(105 512 590)"/>
+    <use xlink:href="#major" transform="rotate(120 512 590)"/>
+  </g>
+
+  <g transform="translate(512 590) rotate(28) scale(0.86)">
+    <g fill="none" stroke-linecap="round" stroke-width="14">
+      <path d="M 98.7 -285.9 A 105 105 0 0 1 98.7 -214.1" stroke="#ffc145"/>
+      <path d="M 131.6 -297.9 A 140 140 0 0 1 131.6 -202.1" stroke="#ffc145" stroke-opacity="0.5"/>
+      <path d="M -98.7 -285.9 A 105 105 0 0 0 -98.7 -214.1" stroke="#ff6f61"/>
+      <path d="M -131.6 -297.9 A 140 140 0 0 0 -131.6 -202.1" stroke="#ff6f61" stroke-opacity="0.5"/>
+    </g>
+    <g filter="url(#shadow)" fill="url(#steel)">
+      <rect x="-18" y="-140" width="36" height="210" rx="18"/>
+      <path d="M -62 -300 L -62 -190 A 62 62 0 0 0 62 -190 L 62 -300 A 16 16 0 0 0 30 -300
+               L 30 -190 A 30 30 0 0 1 -30 -190 L -30 -300 A 16 16 0 0 0 -62 -300 Z"/>
+    </g>
+  </g>
+
+  <circle cx="512" cy="590" r="54" fill="url(#cap)" stroke="url(#heat)" stroke-width="10"/>
+  <circle cx="512" cy="590" r="16" fill="#ffffff"/>
+
+  <g fill="url(#heat)">
+    <rect x="343" y="862" width="18" height="16" rx="9"/>
+    <rect x="375" y="856" width="18" height="28" rx="9"/>
+    <rect x="407" y="848" width="18" height="44" rx="9"/>
+    <rect x="439" y="838" width="18" height="64" rx="9"/>
+    <rect x="471" y="828" width="18" height="84" rx="9"/>
+    <rect x="503" y="822" width="18" height="96" rx="9"/>
+    <rect x="535" y="828" width="18" height="84" rx="9"/>
+    <rect x="567" y="838" width="18" height="64" rx="9"/>
+    <rect x="599" y="848" width="18" height="44" rx="9"/>
+    <rect x="631" y="856" width="18" height="28" rx="9"/>
+    <rect x="663" y="862" width="18" height="16" rx="9"/>
+  </g>
+</svg>
+</div>
+<div class="hero-text">
+<p class="eyebrow">Claude Code plugin</p>
+<h1>tune</h1>
+<p class="tagline">Where your tokens went, and what to change.</p>
+<div class="lede"><p>tune reads your Claude Code session transcripts, shows where the tokens went
 and offers fixes. Everything runs locally with node. Nothing gets sent
 anywhere.</p>
 <p>This page covers what tune reads, how to read the report, every tip and fix,
 how tracking works and where tune keeps its files. Open it any time with
 <code>/tune help --open</code> in a Claude Code session, or <code>tune help --open</code> in a
 terminal once you run <code>/tune install</code> (see <a href="#command-line">Command line</a>).</p>
-<h2 id="quick-start">Quick start</h2>
+</div>
+<ul class="stats">
+<li><b>16</b> tips</li>
+<li><b>6</b> skills and agents it can write</li>
+<li><b>0</b> bytes sent anywhere</li>
+</ul>
+<div class="cta">
+<button type="button" class="pill copy-text" data-copy="/tune"><span>Run in Claude Code</span><code>/tune</code></button>
+<button type="button" class="pill copy-text" data-copy="/tune install"><span>Get the terminal command</span><code>/tune install</code></button>
+</div>
+</div>
+</div>
+</header>
+<div class="layout">
+<aside class="sidebar">
+<div class="sidebar-inner">
+<label class="search"><span class="sr">Filter the contents</span><input type="search" placeholder="Filter" autocomplete="off"><kbd>/</kbd></label>
+<nav aria-label="Contents"><ul class="toc">
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#what-tune-reads">What tune reads</a><ul><li><a href="#what-the-dollar-figures-mean">What the dollar figures mean</a></li></ul></li>
+<li><a href="#the-report">The report</a></li>
+<li><a href="#tips">Tips</a><ul><li><a href="#file-reads"><i class="dot high"></i>file-reads</a></li><li><a href="#context-reread"><i class="dot high"></i>context-reread</a></li><li><a href="#huge-context"><i class="dot high"></i>huge-context</a></li><li><a href="#unused-tools"><i class="dot medium"></i>unused-tools</a></li><li><a href="#heavy-skills"><i class="dot medium"></i>heavy-skills</a></li><li><a href="#idle-rewrite"><i class="dot medium"></i>idle-rewrite</a></li><li><a href="#subagent-model"><i class="dot medium"></i>subagent-model</a></li><li><a href="#big-results"><i class="dot medium"></i>big-results</a></li><li><a href="#repeated-commands"><i class="dot medium"></i>repeated-commands</a></li><li><a href="#long-sessions"><i class="dot medium"></i>long-sessions</a></li><li><a href="#denials"><i class="dot medium"></i>denials</a></li><li><a href="#instructions"><i class="dot low"></i>instructions</a></li><li><a href="#rereads"><i class="dot low"></i>rereads</a></li><li><a href="#tool-errors"><i class="dot low"></i>tool-errors</a></li><li><a href="#cd-commands"><i class="dot low"></i>cd-commands</a></li><li><a href="#transcript-cleanup"><i class="dot low"></i>transcript-cleanup</a></li></ul></li>
+<li><a href="#fixes">Fixes</a></li>
+<li><a href="#tracking">Tracking</a></li>
+<li><a href="#command-line">Command line</a></li>
+<li><a href="#files-and-settings">Files and settings</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul></nav>
+<button type="button" class="theme" aria-label="Switch the color theme"><span class="theme-icon" aria-hidden="true"></span><span class="theme-label">Auto</span></button>
+</div>
+</aside>
+<main>
+<section class="reveal" aria-labelledby="quick-start">
+<h2 id="quick-start"><span class="num">01</span>Quick start<a class="anchor" href="#quick-start" aria-label="Link to this part">#</a></h2>
 <ol>
 <li>Run <code>/tune:tune</code> in a Claude Code session (or <code>/tune</code> if nothing else uses
 that name).</li>
@@ -122,14 +1091,16 @@ sessions and your hot files.</li>
 </ol>
 <p>The first scan reads every transcript and can take a few seconds. Later scans
 only read what changed.</p>
-<h2 id="what-tune-reads">What tune reads</h2>
+</section>
+<section class="reveal" aria-labelledby="what-tune-reads">
+<h2 id="what-tune-reads"><span class="num">02</span>What tune reads<a class="anchor" href="#what-tune-reads" aria-label="Link to this part">#</a></h2>
 <p>Claude Code saves every session as a JSONL file under <code>~/.claude/projects</code>,
 one folder per working directory. Subagent transcripts sit in a folder next
 to the session. tune reads all of them.</p>
 <p>It does not matter where the session ran. The CLI, the VS Code extension, the
 desktop app, <code>claude -p</code> and the Agent SDK all save to the same folder, and
 the report tells you which one each session came from:</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>Label</th>
@@ -160,7 +1131,7 @@ the report tells you which one each session came from:</p>
 <td>unknown</td>
 <td>The transcript does not say</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>A few things are left out:</p>
 <ul>
 <li><strong>Sessions with no requests.</strong> You opened them and left, so they say
@@ -172,19 +1143,21 @@ measured for a year, but it cannot measure a session it never saw. The
 </ul>
 <p>If you set <code>CLAUDE_CONFIG_DIR</code>, tune reads that folder instead of
 <code>~/.claude</code>, the same way Claude Code does.</p>
-<h3 id="what-the-dollar-figures-mean">What the dollar figures mean</h3>
+<h3 id="what-the-dollar-figures-mean">What the dollar figures mean<a class="anchor" href="#what-the-dollar-figures-mean" aria-label="Link to this part">#</a></h3>
 <p>Every cost is worked out at API list price from the token counts in the
 transcripts. That is what the same work would cost on the API. On a Pro or
 Max plan you do not pay that amount, but the figures still show which
 sessions and habits use up your limits fastest.</p>
-<h2 id="the-report">The report</h2>
+</section>
+<section class="reveal" aria-labelledby="the-report">
+<h2 id="the-report"><span class="num">03</span>The report<a class="anchor" href="#the-report" aria-label="Link to this part">#</a></h2>
 <p><code>tune report</code> prints the report as Markdown. <code>/tune</code> reads it and walks you
 through it. It has these parts, in order.</p>
 <p><strong>Totals.</strong> The number of sessions, what they cost, how much of it went to
 re-reading cached context, what went to subagents, and the average and
 largest context. The next line splits sessions and spend by where they ran.</p>
 <p><strong>Where the spend went.</strong> The cost split by what filled the context:</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>Slice</th>
@@ -235,7 +1208,7 @@ largest context. The next line splits sessions and spend by where they ran.</p>
 <td>Writing replies (output tokens)</td>
 <td>The tokens Claude wrote in each response</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>Every request sends the whole conversation again, so something read early in
 a long session is paid for on every request after it. That is why reading files
 and command output are often the biggest slices.</p>
@@ -252,17 +1225,29 @@ context cost. A file shows up once at least 2 sessions read it. Short,
 focused files are cheaper to read, so a big hot file is a good one to split.</p>
 <p><strong>Suggested skills and agents.</strong> Skills and agents tune can write for you,
 with the reason it suggests each one. See <a href="#fixes">Fixes</a>.</p>
-<h2 id="tips">Tips</h2>
+</section>
+<section class="reveal" aria-labelledby="tips">
+<h2 id="tips"><span class="num">04</span>Tips<a class="anchor" href="#tips" aria-label="Link to this part">#</a></h2>
 <p>Each tip has an id you use with <code>fix</code> and <code>track</code>, and a severity: high,
 medium or low. A tip only shows when it is worth acting on.</p>
-<h3 id="file-reads-high">file-reads (high)</h3>
+<div class="filters" role="group" aria-label="Show tips by severity">
+<button type="button" class="chip on" data-filter="all">All <b>16</b></button>
+<button type="button" class="chip high" data-filter="high">high <b>3</b></button>
+<button type="button" class="chip medium" data-filter="medium">medium <b>8</b></button>
+<button type="button" class="chip low" data-filter="low">low <b>5</b></button>
+</div>
+<div class="tips">
+<article class="tip high" id="file-reads" data-severity="high">
+<header><code>file-reads</code><span class="badge high">high</span><a class="anchor" href="#file-reads" aria-label="Link to this tip">#</a></header>
 <p><strong>Files read once are paid for on every later request.</strong> A file read on
 request 20 of a 400 request session is sent 380 more times. Hand searches to
 a subagent such as scout, read line ranges instead of whole files, and keep
 the files sessions read most short.</p>
 <p>Fixes: split the hot files (launch), add the scout agent (create).
 Skip it for short sessions, which pay little to carry a file.</p>
-<h3 id="context-reread-high">context-reread (high)</h3>
+</article>
+<article class="tip high" id="context-reread" data-severity="high">
+<header><code>context-reread</code><span class="badge high">high</span><a class="anchor" href="#context-reread" aria-label="Link to this tip">#</a></header>
 <p><strong>Most of the spend is re-reading old context.</strong> The 300th turn of a session
 costs far more than the 3rd. Start a new session when you move on to a new
 task, use <code>/clear</code> when you switch to something unrelated, and <code>/compact</code>
@@ -270,32 +1255,42 @@ with a focus at natural breakpoints.</p>
 <p>Fixes: compact at 200K tokens (knob), add the scout agent (create).
 Skip it in the middle of hard debugging. Write a handoff note first and
 start fresh once that task is done.</p>
-<h3 id="huge-context-high">huge-context (high)</h3>
+</article>
+<article class="tip high" id="huge-context" data-severity="high">
+<header><code>huge-context</code><span class="badge high">high</span><a class="anchor" href="#huge-context" aria-label="Link to this tip">#</a></header>
 <p><strong>Sessions grow huge without compacting.</strong> Lower <code>autoCompactWindow</code> so
 Claude Code compacts long before the 1M limit, or write a handoff note and
 carry on in a fresh session.</p>
 <p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
 Skip it for work that needs a lot in view at once, like a refactor across
 many files.</p>
-<h3 id="unused-tools-medium">unused-tools (medium)</h3>
+</article>
+<article class="tip medium" id="unused-tools" data-severity="medium">
+<header><code>unused-tools</code><span class="badge medium">medium</span><a class="anchor" href="#unused-tools" aria-label="Link to this tip">#</a></header>
 <p><strong>Every request carries tools that never get used.</strong> A tool&#39;s definition goes
 out with every request whether Claude calls it or not. Adding a tool to
 <code>permissions.deny</code> leaves it out of the request.</p>
 <p>Fix: deny the tools you never use (knob).
 Keep a tool you use now and then, even if only in a few sessions.</p>
-<h3 id="heavy-skills-medium">heavy-skills (medium)</h3>
+</article>
+<article class="tip medium" id="heavy-skills" data-severity="medium">
+<header><code>heavy-skills</code><span class="badge medium">medium</span><a class="anchor" href="#heavy-skills" aria-label="Link to this tip">#</a></header>
 <p><strong>Skills cost more to carry than they need to.</strong> A loaded skill stays in
 context for the rest of the session. Keep SKILL.md to the steps Claude needs
 every time and move reference material into files it reads only when needed.</p>
 <p>Fix: slim the heaviest skills (launch).
 Skip it for short skills or ones used only in short sessions.</p>
-<h3 id="idle-rewrite-medium">idle-rewrite (medium)</h3>
+</article>
+<article class="tip medium" id="idle-rewrite" data-severity="medium">
+<header><code>idle-rewrite</code><span class="badge medium">medium</span><a class="anchor" href="#idle-rewrite" aria-label="Link to this tip">#</a></header>
 <p><strong>Resuming big sessions after a break rewrites the cache.</strong> The prompt cache
 expires after a few minutes without a request. Coming back to a 500K session
 after lunch writes all of it again, about $2.50 at Opus prices.</p>
 <p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
 Skip it for short breaks.</p>
-<h3 id="subagent-model-medium">subagent-model (medium)</h3>
+</article>
+<article class="tip medium" id="subagent-model" data-severity="medium">
+<header><code>subagent-model</code><span class="badge medium">medium</span><a class="anchor" href="#subagent-model" aria-label="Link to this tip">#</a></header>
 <p><strong>Subagents run on the most expensive models.</strong> Most subagent work is
 searching and summarizing, which Sonnet or Haiku do well for a fraction of
 the price.</p>
@@ -303,48 +1298,64 @@ the price.</p>
 the scout agent on Haiku (create).
 Keep Opus for agents that review code, plan or debug by giving them
 <code>model: opus</code> in their frontmatter.</p>
-<h3 id="big-results-medium">big-results (medium)</h3>
+</article>
+<article class="tip medium" id="big-results" data-severity="medium">
+<header><code>big-results</code><span class="badge medium">medium</span><a class="anchor" href="#big-results" aria-label="Link to this tip">#</a></header>
 <p><strong>Huge tool output stays in context.</strong> Filter output before Claude sees it,
 ask for line ranges, or cap Bash output with <code>BASH_MAX_OUTPUT_LENGTH</code>.</p>
 <p>Fixes: cap shell output at 15,000 characters (knob), add the quiet-run skill
 (create).
 Let the full output through when you do not know yet what you are looking
 for.</p>
-<h3 id="repeated-commands-medium">repeated-commands (medium)</h3>
+</article>
+<article class="tip medium" id="repeated-commands" data-severity="medium">
+<header><code>repeated-commands</code><span class="badge medium">medium</span><a class="anchor" href="#repeated-commands" aria-label="Link to this tip">#</a></header>
 <p><strong>The same commands run over and over.</strong> Polling a build, server or CI run
 from the main session sends the whole context again each time.</p>
 <p>Fixes: add the ci-watch agent, the dev-server skill and the quiet-run skill
 (create).
 A quick test or build you rerun after each small edit is fine.</p>
-<h3 id="long-sessions-medium">long-sessions (medium)</h3>
+</article>
+<article class="tip medium" id="long-sessions" data-severity="medium">
+<header><code>long-sessions</code><span class="badge medium">medium</span><a class="anchor" href="#long-sessions" aria-label="Link to this tip">#</a></header>
 <p><strong>Long sessions mix several tasks.</strong> Keep one task per session and put facts
 every session needs in CLAUDE.md or a skill.</p>
 <p>Fixes: compact at 200K tokens (knob), add the handoff skill (create).
 Stay in one session when the tasks build on each other.</p>
-<h3 id="denials-medium">denials (medium)</h3>
+</article>
+<article class="tip medium" id="denials" data-severity="medium">
+<header><code>denials</code><span class="badge medium">medium</span><a class="anchor" href="#denials" aria-label="Link to this tip">#</a></header>
 <p><strong>Tool calls keep getting denied.</strong> Each denied call is a wasted turn. Add
 allow rules for the read-only commands Claude keeps asking for.</p>
 <p>Fix: run <code>/fewer-permission-prompts</code> in the project with the most denials
 (launch).
 Keep denying anything that pushes, deletes, deploys or touches production.</p>
-<h3 id="instructions-low">instructions (low)</h3>
+</article>
+<article class="tip low" id="instructions" data-severity="low">
+<header><code>instructions</code><span class="badge low">low</span><a class="anchor" href="#instructions" aria-label="Link to this tip">#</a></header>
 <p><strong>CLAUDE.md and memory are sent with every request.</strong> Keep them to one line
 per rule.</p>
 <p>Fix: have Claude tighten <code>~/.claude/CLAUDE.md</code> and the memory index (launch).
 Leave a rule long when its detail prevents a costly mistake.</p>
-<h3 id="rereads-low">rereads (low)</h3>
+</article>
+<article class="tip low" id="rereads" data-severity="low">
+<header><code>rereads</code><span class="badge low">low</span><a class="anchor" href="#rereads" aria-label="Link to this tip">#</a></header>
 <p><strong>Files are read again and again.</strong> Each read of a whole file adds it to
 context again. Ask for the lines you need, or grep for them.</p>
 <p>Fix: add the scout agent (create).
 A reread after the file changed is worth it.</p>
-<h3 id="tool-errors-low">tool-errors (low)</h3>
+</article>
+<article class="tip low" id="tool-errors" data-severity="low">
+<header><code>tool-errors</code><span class="badge low">low</span><a class="anchor" href="#tool-errors" aria-label="Link to this tip">#</a></header>
 <p><strong>Many tool calls fail.</strong> Put the exact build, test and lint commands, and
 the setup they need, in CLAUDE.md.</p>
 <p>Fix: have Claude find the failing commands and add the right ones to the
 project&#39;s CLAUDE.md (launch).
 Failing tests and type errors do not count. They are how Claude finds
 problems.</p>
-<h3 id="cd-commands-low">cd-commands (low)</h3>
+</article>
+<article class="tip low" id="cd-commands" data-severity="low">
+<header><code>cd-commands</code><span class="badge low">low</span><a class="anchor" href="#cd-commands" aria-label="Link to this tip">#</a></header>
 <p><strong>Commands keep changing folders.</strong> Start sessions in the project folder, so
 its CLAUDE.md and skills load, and use absolute paths or <code>git -C</code> instead of
 <code>cd</code>. Claude Code puts the shell back in the session folder after a <code>cd</code>
@@ -353,7 +1364,9 @@ outside it, so every later command there starts with <code>cd</code> again.</p>
 <code>permissions.additionalDirectories</code> (knob), so the shell stays after one
 <code>cd</code>. Sessions can then also read and edit files there.
 Work across several repos cannot always avoid it.</p>
-<h3 id="transcript-cleanup-low">transcript-cleanup (low)</h3>
+</article>
+<article class="tip low" id="transcript-cleanup" data-severity="low">
+<header><code>transcript-cleanup</code><span class="badge low">low</span><a class="anchor" href="#transcript-cleanup" aria-label="Link to this tip">#</a></header>
 <p><strong>Claude Code deletes old transcripts.</strong> It shows once your oldest session is
 close to the <code>cleanupPeriodDays</code> limit (30 days by default) and the setting is
 under 90 days. Raising it lets tune measure sessions it never scanned in
@@ -361,7 +1374,11 @@ time, and lets <code>/resume</code> reach them.</p>
 <p>Fix: keep transcripts for 90 days (knob).
 Transcripts take disk space roughly in proportion to the days kept, so skip
 it when disk space is tight.</p>
-<h2 id="fixes">Fixes</h2>
+</article>
+</div>
+</section>
+<section class="reveal" aria-labelledby="fixes">
+<h2 id="fixes"><span class="num">05</span>Fixes<a class="anchor" href="#fixes" aria-label="Link to this part">#</a></h2>
 <p>Every fix has an id like <code>knob:autoCompactWindow</code>. The report lists them
 under each tip. There are three kinds.</p>
 <p><strong>knob</strong> sets one key in <code>~/.claude/settings.json</code>. Environment settings like
@@ -372,7 +1389,7 @@ the fix wants shows as already applied. New sessions pick up the change.</p>
 <p><strong>create</strong> writes a skill or agent into <code>~/.claude/skills</code> or
 <code>~/.claude/agents</code>. It never overwrites a file that is already there, and
 one already in the project&#39;s <code>.claude</code> folder counts as done.</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>Id</th>
@@ -410,13 +1427,15 @@ one already in the project&#39;s <code>.claude</code> folder counts as done.</p>
 <td>skill</td>
 <td>Starts, restarts and stops local servers in the background and waits until they answer</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p><strong>launch</strong> is a task Claude does in the session, like splitting a big file or
 trimming a skill. <code>tune fix &lt;id&gt;</code> prints the task, the folder to do it in and
 whether to make a new worktree. Claude shows it to you and asks before
 starting.</p>
 <p>Use <code>--dry-run</code> to see what a knob or create fix would do without doing it.</p>
-<h2 id="tracking">Tracking</h2>
+</section>
+<section class="reveal" aria-labelledby="tracking">
+<h2 id="tracking"><span class="num">06</span>Tracking<a class="anchor" href="#tracking" aria-label="Link to this part">#</a></h2>
 <p>Applying a knob or create fix starts tracking the tips it follows. You can
 also track a tip by hand with <code>tune track &lt;tip-id&gt;</code>, which is how you mark a
 habit change, like starting fresh sessions more often.</p>
@@ -429,7 +1448,7 @@ were already running when tracking started are left out. It compares:</p>
 <li>the side effects the tip warns about.</li>
 </ul>
 <p>The verdict is one of:</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>Verdict</th>
@@ -460,33 +1479,41 @@ were already running when tracking started are left out. It compares:</p>
 <td>no-baseline</td>
 <td>There were no sessions in the 30 days before to compare with</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>A tracked tip stays in the report even once the habit no longer stands out,
 so you can still see how it went. Stop tracking it with
 <code>tune track &lt;tip-id&gt; --off</code>.</p>
-<h2 id="command-line">Command line</h2>
+</section>
+<section class="reveal" aria-labelledby="command-line">
+<h2 id="command-line"><span class="num">07</span>Command line<a class="anchor" href="#command-line" aria-label="Link to this part">#</a></h2>
 <p>To run tune in a terminal, from any folder, run this once in a Claude Code
 session:</p>
-<pre><code class="language-text">/tune install
-</code></pre>
+<figure class="code">
+<figcaption><span class="dots"><i></i><i></i><i></i></span><span>Claude Code</span><button class="copy" type="button">Copy</button></figcaption>
+<pre><code>/tune install</code></pre>
+</figure>
 <p>It writes a <code>tune</code> command into <code>~/.local/bin</code>. That command finds the
 installed plugin each time it runs, so it keeps working when the plugin
 updates. If <code>~/.local/bin</code> is not on your PATH, it says so. Pass a folder to
 put the command somewhere else, like <code>/tune install ~/bin</code>. Then:</p>
-<pre><code class="language-bash">tune report                 # Markdown report
-tune report --json          # everything, as JSON
-tune fix &lt;fix-id&gt; --dry-run # what a fix would do
-tune fix &lt;fix-id&gt;           # apply a fix
-tune track &lt;tip-id&gt; [--off] # start or stop tracking a tip
-tune help                   # the commands
-tune help --open            # this page, in your browser
-</code></pre>
+<figure class="code shell">
+<figcaption><span class="dots"><i></i><i></i><i></i></span><span>Terminal</span><button class="copy" type="button">Copy</button></figcaption>
+<pre><code><span class="line">tune report                <span class="comment"> # Markdown report</span></span>
+<span class="line">tune report --json         <span class="comment"> # everything, as JSON</span></span>
+<span class="line">tune fix &lt;fix-id&gt; --dry-run<span class="comment"> # what a fix would do</span></span>
+<span class="line">tune fix &lt;fix-id&gt;          <span class="comment"> # apply a fix</span></span>
+<span class="line">tune track &lt;tip-id&gt; [--off]<span class="comment"> # start or stop tracking a tip</span></span>
+<span class="line">tune help                  <span class="comment"> # the commands</span></span>
+<span class="line">tune help --open           <span class="comment"> # this page, in your browser</span></span></code></pre>
+</figure>
 <p>With no command, it runs <code>report</code>. You can also pass any of these to the
 skill, like <code>/tune fix knob:autoCompactWindow</code>, without installing anything.</p>
-<h2 id="files-and-settings">Files and settings</h2>
+</section>
+<section class="reveal" aria-labelledby="files-and-settings">
+<h2 id="files-and-settings"><span class="num">08</span>Files and settings<a class="anchor" href="#files-and-settings" aria-label="Link to this part">#</a></h2>
 <p>tune keeps its own files outside the plugin folder, since a plugin update
 replaces that folder:</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>File</th>
@@ -505,10 +1532,10 @@ replaces that folder:</p>
 <td><code>backups/</code></td>
 <td>Copies of <code>settings.json</code> from before each change tune made</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>They live in <code>${XDG_STATE_HOME:-~/.local/state}/claude-tune</code>. These
 environment variables change where things go:</p>
-<table>
+<div class="table"><table>
 <thead>
 <tr>
 <th>Variable</th>
@@ -527,7 +1554,7 @@ environment variables change where things go:</p>
 <td><code>CLAUDE_CONFIG_DIR</code></td>
 <td>Where Claude Code keeps transcripts and settings, <code>~/.claude</code> by default</td>
 </tr>
-</tbody></table>
+</tbody></table></div>
 <p>tune reads settings the way Claude Code layers them, so it can tell whether a
 fix is already in place. From highest to lowest: managed settings, the
 project&#39;s <code>.claude/settings.local.json</code> and <code>.claude/settings.json</code>,
@@ -535,7 +1562,9 @@ project&#39;s <code>.claude/settings.local.json</code> and <code>.claude/setting
 file.</p>
 <p>After an update that changes what tune measures, the next scan reads every
 transcript again. That takes a few seconds once.</p>
-<h2 id="troubleshooting">Troubleshooting</h2>
+</section>
+<section class="reveal" aria-labelledby="troubleshooting">
+<h2 id="troubleshooting"><span class="num">09</span>Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this part">#</a></h2>
 <p><strong>It says there are no sessions.</strong> Check that <code>~/.claude/projects</code> (or
 <code>$CLAUDE_CONFIG_DIR/projects</code>) has <code>.jsonl</code> files in it. Sessions with no
 requests do not count.</p>
@@ -553,6 +1582,175 @@ said <code>~/.local/bin</code> is not on your PATH, add it in your shell profile
 <code>xdg-open</code> on Linux. Without a desktop, like over ssh, open the path it
 prints yourself.</p>
 <p><strong>node complains.</strong> tune needs node 22.3 or later on your PATH.</p>
+</section>
+<footer class="end">Built from docs/help.md. Nothing on this page touched the network.</footer>
 </main>
+</div>
+<a class="top" href="#" aria-label="Back to the top">&uarr;</a>
+<script>
+{
+// The help page's moving parts: copy buttons, the tip filters, the contents
+// filter and highlight, the theme switch and the scroll effects.
+
+const root = document.documentElement;
+
+function flash(element, done) {
+  element.classList.add('copied');
+  const label = element.textContent;
+  if (done !== undefined) {
+    element.textContent = done;
+  }
+  setTimeout(() => {
+    element.classList.remove('copied');
+    if (done !== undefined) {
+      element.textContent = label;
+    }
+  }, 1400);
+}
+
+async function copy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+for (const button of document.querySelectorAll('.code .copy')) {
+  button.addEventListener('click', async () => {
+    const code = button.closest('.code').querySelector('code').textContent;
+    if (await copy(code.trim())) {
+      flash(button, 'Copied');
+    }
+  });
+}
+
+for (const button of document.querySelectorAll('.copy-text')) {
+  button.addEventListener('click', async () => {
+    if (await copy(button.dataset.copy)) {
+      flash(button);
+    }
+  });
+}
+
+// Tip filters: show every tip, or only one severity.
+for (const group of document.querySelectorAll('.filters')) {
+  const tips = group.nextElementSibling.querySelectorAll('.tip');
+  for (const chip of group.querySelectorAll('.chip')) {
+    chip.addEventListener('click', () => {
+      for (const other of group.querySelectorAll('.chip')) {
+        other.classList.toggle('on', other === chip);
+      }
+      for (const tip of tips) {
+        tip.hidden = chip.dataset.filter !== 'all' && tip.dataset.severity !== chip.dataset.filter;
+      }
+    });
+  }
+}
+
+// Contents filter. Press / to jump to it.
+const search = document.querySelector('.search input');
+const items = [...document.querySelectorAll('.toc li')];
+search.addEventListener('input', () => {
+  const query = search.value.trim().toLowerCase();
+  for (const item of items) {
+    const match = item.textContent.toLowerCase().includes(query);
+    item.classList.toggle('hidden', !match);
+  }
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === '/' && document.activeElement !== search) {
+    event.preventDefault();
+    search.focus();
+  } else if (event.key === 'Escape' && document.activeElement === search) {
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    search.blur();
+  }
+});
+
+// Theme: follow the system, or pick light or dark. The choice is remembered.
+const THEMES = ['auto', 'light', 'dark'];
+const themeButton = document.querySelector('.theme');
+const themeLabel = themeButton.querySelector('.theme-label');
+function showTheme(theme) {
+  themeLabel.textContent = theme[0].toUpperCase() + theme.slice(1);
+  if (theme === 'auto') {
+    delete root.dataset.theme;
+  } else {
+    root.dataset.theme = theme;
+  }
+  try {
+    if (theme === 'auto') {
+      localStorage.removeItem('tune-theme');
+    } else {
+      localStorage.setItem('tune-theme', theme);
+    }
+  } catch {
+    // Some browsers keep no storage for a file:// page. The switch still works.
+  }
+}
+showTheme(root.dataset.theme ?? 'auto');
+themeButton.addEventListener('click', () => {
+  const now = root.dataset.theme ?? 'auto';
+  showTheme(THEMES[(THEMES.indexOf(now) + 1) % THEMES.length]);
+});
+
+// Highlight the part of the contents you are reading.
+const links = new Map(
+  [...document.querySelectorAll('.toc a')].map((link) => [link.getAttribute('href').slice(1), link]),
+);
+const targets = [...links.keys()].map((id) => document.getElementById(id)).filter(Boolean);
+function highlight() {
+  let current = targets[0];
+  for (const target of targets) {
+    if (target.offsetParent !== null && target.getBoundingClientRect().top < window.innerHeight * 0.2) {
+      current = target;
+    }
+  }
+  for (const [id, link] of links) {
+    const on = id === current?.id;
+    if (on && !link.classList.contains('active')) {
+      link.scrollIntoView({ block: 'nearest' });
+    }
+    link.classList.toggle('active', on);
+  }
+}
+
+// Scroll progress and the back to top button.
+const backToTop = document.querySelector('.top');
+function onScroll() {
+  const max = root.scrollHeight - root.clientHeight;
+  root.style.setProperty('--scrolled', max > 0 ? String(root.scrollTop / max) : '0');
+  backToTop.classList.toggle('shown', root.scrollTop > 600);
+  highlight();
+}
+document.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+// Fade each part in the first time it scrolls into view.
+const reveal = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        reveal.unobserve(entry.target);
+      }
+    }
+  },
+  { rootMargin: '0px 0px -10% 0px' },
+);
+for (const section of document.querySelectorAll('.reveal')) {
+  reveal.observe(section);
+}
+// A link straight to a part should not land on a blank page.
+if (location.hash !== '') {
+  for (const section of document.querySelectorAll('.reveal')) {
+    section.classList.add('in');
+  }
+}
+}
+</script>
 </body>
 </html>
